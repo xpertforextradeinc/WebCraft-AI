@@ -1,0 +1,6 @@
+{
+  "name": "AI Website Generator",
+  "description": "An AI-powered application that generates website code based on user prompts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

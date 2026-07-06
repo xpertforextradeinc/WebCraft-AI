@@ -39,7 +39,7 @@ async function startServer() {
           model: "gemini-2.0-flash",
           contents: `${systemPrompt}\n\n${existingCode ? `Existing code: ${existingCode}\nFollow-up: ${prompt}` : prompt}`,
         });
-        code = response.text() || "";
+        code = response.text || "";
       }
 
       // Remove markdown code blocks if any (fallback)

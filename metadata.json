@@ -1,6 +1,6 @@
 {
-  "name": "AI Website Generator",
-  "description": "An AI-powered application that generates website code based on user prompts.",
+  "name": "WebCraft AI",
+  "description": "An intelligent AI website builder powered by OpenAI and Google Gemini that creates, edits, and optimizes modern websites from natural language prompts.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

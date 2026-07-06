@@ -1,0 +1,23 @@
+export const templates = [
+  { name: "Brokerage Landing Page", prompt: "A professional landing page for a financial brokerage firm, including a hero section with a call-to-action, services overview, and testimonials." },
+  { name: "Crypto Brokerage Platform", prompt: "A modern cryptocurrency brokerage platform featuring real-time crypto prices, a portfolio dashboard, and secure wallet integration." },
+  { name: "Forex Trading Platform", prompt: "A forex trading website with live currency pair charts, trading account information, and educational resources." },
+  { name: "Stock Trading App", prompt: "A stock trading application landing page showcasing user-friendly features, market analysis, and a signup call-to-action." },
+  { name: "Investment Management Site", prompt: "A website for an investment management firm, highlighting portfolio strategies, advisory services, and a client portal login." },
+  { name: "DeFi Platform Landing Page", prompt: "A landing page for a Decentralized Finance (DeFi) platform, with information on staking, liquidity pools, and governance." },
+  { name: "NFT Marketplace Showcase", prompt: "A visually engaging website for an NFT marketplace, featuring trending collections, featured NFTs, and artist profiles." },
+  { name: "Wealth Management Site", prompt: "A sophisticated website for a wealth management firm, emphasizing private banking services, risk assessment tools, and client testimonials." },
+  { name: "Commodities Brokerage", prompt: "A landing page for a commodities brokerage, with market data widgets, commodity trading tools, and a contact form." },
+  { name: "Financial News Portal", prompt: "A financial news website featuring top news stories, market data, and insightful articles." },
+  { name: "E-commerce Store (Fashion)", prompt: "A modern e-commerce store for fashion clothing, including a product grid, search bar, and shopping cart icon." },
+  { name: "Personal Portfolio", prompt: "A minimalist personal portfolio website for a designer, featuring a hero section, project gallery, and contact information." },
+  { name: "Restaurant Menu & Reservations", prompt: "A restaurant website with an interactive menu, a reservation form, and a photo gallery." },
+  { name: "Real Estate Listings", prompt: "A real estate website featuring a search bar for properties, property listings with images, and a contact form for agents." },
+  { name: "SaaS Product Landing Page", prompt: "A high-conversion landing page for a SaaS product, including feature highlights, pricing plans, and testimonials." },
+  { name: "Tech Blog", prompt: "A clean, modern blog website for tech articles, featuring categorized post listings and a newsletter signup form." },
+  { name: "Creative Agency Portfolio", prompt: "A bold, creative agency website showcasing their portfolio with large images, services section, and contact call-to-action." },
+  { name: "Photography Showcase", prompt: "A photography portfolio with a large, full-width photo gallery, about me section, and booking form." },
+  { name: "Fitness Coach Personal Site", prompt: "A fitness coach website featuring coaching plans, client success stories, and an appointment booking section." },
+  { name: "Educational Course Landing Page", prompt: "A landing page for an online course, highlighting curriculum, instructor bio, and enrollment call-to-action." },
+  { name: "Law Firm Services Page", prompt: "A professional website for a law firm, detailing services, attorney profiles, and a consultation booking form." }
+];

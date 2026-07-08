@@ -21,7 +21,11 @@ if (!supabaseUrl || !activeKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl || '', activeKey || '', {
+// Fallback to a valid-formatted placeholder URL and key to prevent createClient from throwing a fatal runtime error at module load time.
+const safeSupabaseUrl = supabaseUrl && supabaseUrl.startsWith('http') ? supabaseUrl : 'https://placeholder-please-configure-env.supabase.co';
+const safeActiveKey = activeKey || 'placeholder-anon-key-please-configure-env';
+
+export const supabase = createClient(safeSupabaseUrl, safeActiveKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,

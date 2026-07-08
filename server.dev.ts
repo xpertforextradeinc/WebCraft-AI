@@ -1,54 +1,49 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
-import OpenAI from "openai";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
+
+// Import our central, production-ready Vercel handlers
+import generateHandler from "./api/generate";
+import generateMediaHandler from "./api/generate-media";
+import paystackWebhookHandler from "./api/webhook/paystack/route";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
-
-  // API route for generating website code
-  app.post("/api/generate", async (req, res) => {
-    const { prompt, existingCode, model } = req.body;
-    if (!prompt) {
-      return res.status(400).json({ error: "Prompt is required" });
+  app.use(express.json({
+    verify: (req: any, res, buf) => {
+      req.rawBody = buf;
     }
+  }));
 
-    const systemPrompt = "You are a web developer. Output ONLY valid, clean HTML/Tailwind CSS code for the requested website. Do not include markdown code blocks, do not explain, do not add conversational text. The entire response must be just the HTML code.";
-
+  // Mount API endpoints directly to their corresponding serverless route handlers
+  // This avoids logic duplication and guarantees 100% local-to-production fidelity!
+  app.post("/api/generate", async (req, res, next) => {
     try {
-      let code = "";
-      if (model === "openai") {
-        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: existingCode ? `Existing code: ${existingCode}\nFollow-up: ${prompt}` : prompt }
-          ],
-        });
-        code = response.choices[0].message.content || "";
-      } else {
-        const ai = new GoogleGenAI({
-          apiKey: process.env.GEMINI_API_KEY!,
-        });
-        const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash",
-          contents: `${systemPrompt}\n\n${existingCode ? `Existing code: ${existingCode}\nFollow-up: ${prompt}` : prompt}`,
-        });
-        code = response.text || "";
-      }
+      await generateHandler(req as any, res as any);
+    } catch (err) {
+      next(err);
+    }
+  });
 
-      // Remove markdown code blocks if any (fallback)
-      code = code.replace(/```html\n?|```/g, "").trim();
+  app.post("/api/generate-media", async (req, res, next) => {
+    try {
+      await generateMediaHandler(req as any, res as any);
+    } catch (err) {
+      next(err);
+    }
+  });
 
-      res.json({ code });
-    } catch (error) {
-      console.error("Generation error:", error);
-      res.status(500).json({ error: "Failed to generate website" });
+  app.post("/api/webhook/paystack", async (req, res, next) => {
+    try {
+      await paystackWebhookHandler(req as any, res as any);
+    } catch (err) {
+      next(err);
     }
   });
 
@@ -68,7 +63,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`[WebCraft AI] Server running on http://localhost:${PORT}`);
   });
 }
 

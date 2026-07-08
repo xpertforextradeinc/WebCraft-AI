@@ -4,6 +4,39 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebCraft AI</title>
+    <!-- Global Optimization Tracking Script Header -->
+    <script>
+      window.appTrackerData = {
+        geoTarget: "NG",
+        appName: "WebCraft AI",
+        campaignObjective: "SaaS User Acquisition"
+      };
+      
+      // Asynchronous analytical optimization event framework container
+      (function() {
+        try {
+          const trackerScript = document.createElement('script');
+          trackerScript.async = true;
+          trackerScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-OPTIMIZE-PLACEHOLDER';
+          document.head.appendChild(trackerScript);
+          
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){ dataLayer.push(arguments); }
+          window.gtag = gtag;
+          gtag('js', new Date());
+          gtag('config', 'G-OPTIMIZE-PLACEHOLDER', {
+            'custom_map': {
+              'dimension1': 'geoTarget',
+              'dimension2': 'appName',
+              'dimension3': 'campaignObjective'
+            }
+          });
+          gtag('event', 'tracker_init', window.appTrackerData);
+        } catch (e) {
+          console.warn('Analytics layer loaded offline or blocked:', e);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { templates } from './templates';
-import { supabase } from './utils/supabaseClient';
+import { supabase, isSupabaseConfigured, getSupabaseProjectRef } from './utils/supabaseClient';
 import { 
   Sparkles, 
   Lock, 
@@ -134,9 +134,21 @@ export default function App() {
 
   useEffect(() => {
     let profileSub: any = null;
+    let authSub: any = null;
 
     const initAuthAndProfile = async () => {
       setAuthLoading(true);
+      
+      if (!isSupabaseConfigured) {
+        console.log("Supabase is not configured. Falling back to Guest Local Storage sandbox.");
+        const activeUserId = getOrCreateGuestId();
+        setUser(null);
+        setProfile({ plan_tier: 'free', media_credits: 5, table_missing: true });
+        setIsProPlan(false);
+        setAuthLoading(false);
+        return;
+      }
+
       try {
         // 1. Check current Supabase session
         const { data: { session } } = await supabase.auth.getSession();
@@ -201,18 +213,21 @@ export default function App() {
     initAuthAndProfile();
 
     // Listen to Auth state changes
-    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id, session.user.email || 'user@example.com');
-        fetchGenerations(session.user.id);
-      } else {
-        setUser(null);
-        const guestId = getOrCreateGuestId();
-        await fetchProfile(guestId, 'guest@example.com');
-        fetchGenerations(guestId);
-      }
-    });
+    if (isSupabaseConfigured) {
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user.id, session.user.email || 'user@example.com');
+          fetchGenerations(session.user.id);
+        } else {
+          setUser(null);
+          const guestId = getOrCreateGuestId();
+          await fetchProfile(guestId, 'guest@example.com');
+          fetchGenerations(guestId);
+        }
+      });
+      authSub = data.subscription;
+    }
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'analytics_click') {
@@ -223,8 +238,8 @@ export default function App() {
     
     return () => {
       window.removeEventListener('message', handleMessage);
-      if (profileSub) supabase.removeChannel(profileSub);
-      authSub.unsubscribe();
+      if (profileSub && isSupabaseConfigured) supabase.removeChannel(profileSub);
+      if (authSub) authSub.unsubscribe();
     };
   }, []);
 
@@ -483,6 +498,16 @@ export default function App() {
                 Offline Mode (No Tables)
               </span>
             )}
+
+            {/* Supabase Connection Status Badge */}
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black border shadow-sm ${
+              isSupabaseConfigured 
+                ? 'bg-emerald-50/80 text-emerald-700 border-emerald-200' 
+                : 'bg-slate-100 text-slate-500 border-slate-200'
+            }`} title={`Supabase Project Reference: ${getSupabaseProjectRef()}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseConfigured ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+              DB: {getSupabaseProjectRef()}
+            </span>
 
             {/* Live Credits display */}
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-700 shadow-sm">

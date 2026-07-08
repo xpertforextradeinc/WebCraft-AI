@@ -21,9 +21,35 @@ if (!supabaseUrl || !activeKey) {
   );
 }
 
+// Check if the variables are real or missing
+export const isSupabaseConfigured = !!(
+  supabaseUrl && 
+  supabaseUrl.startsWith('http') && 
+  !supabaseUrl.includes('placeholder') &&
+  activeKey && 
+  !activeKey.includes('placeholder')
+);
+
+export const getSupabaseProjectRef = () => {
+  if (!supabaseUrl || !isSupabaseConfigured) return 'Sandbox Mode';
+  try {
+    const urlObj = new URL(supabaseUrl);
+    const host = urlObj.hostname;
+    if (host.includes('.supabase.co')) {
+      return host.split('.')[0];
+    }
+    return host;
+  } catch (e) {
+    return 'Sandbox Mode';
+  }
+};
+
 // Fallback to a valid-formatted placeholder URL and key to prevent createClient from throwing a fatal runtime error at module load time.
-const safeSupabaseUrl = supabaseUrl && supabaseUrl.startsWith('http') ? supabaseUrl : 'https://placeholder-please-configure-env.supabase.co';
-const safeActiveKey = activeKey || 'placeholder-anon-key-please-configure-env';
+const safeSupabaseUrl = isSupabaseConfigured ? supabaseUrl : 'https://placeholder-please-configure-env.supabase.co';
+
+// Use a syntactically valid mock JWT token structure for fallback key to prevent browsers (like Safari/Webkit)
+// from throwing "DOMException: The string did not match the expected pattern" when decoding base64 payload.
+const safeActiveKey = isSupabaseConfigured ? activeKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIn0.cGxhY2Vob2xkZXI';
 
 export const supabase = createClient(safeSupabaseUrl, safeActiveKey, {
   auth: {

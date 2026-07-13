@@ -22,13 +22,17 @@ if (!supabaseUrl || !activeKey) {
 }
 
 // Check if the variables are real or missing
-export const isSupabaseConfigured = !!(
-  supabaseUrl && 
-  supabaseUrl.startsWith('http') && 
-  !supabaseUrl.includes('placeholder') &&
-  activeKey && 
-  !activeKey.includes('placeholder')
-);
+const isSupabaseUrlValid = supabaseUrl && supabaseUrl.startsWith('http') && !supabaseUrl.includes('placeholder');
+const isSupabaseKeyValid = activeKey && activeKey.length > 20;
+
+export const isSupabaseConfigured = !!(isSupabaseUrlValid && isSupabaseKeyValid);
+
+if (!isSupabaseConfigured) {
+  console.error('Supabase not configured properly.');
+  if (!isSupabaseUrlValid) console.error('  - VITE_SUPABASE_URL is missing or invalid.');
+  if (!isSupabaseKeyValid) console.error('  - VITE_SUPABASE_ANON_KEY is missing or invalid.');
+  console.info('Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your Vercel project environment variables.');
+}
 
 export const getSupabaseProjectRef = () => {
   if (!supabaseUrl || !isSupabaseConfigured) return 'Sandbox Mode';

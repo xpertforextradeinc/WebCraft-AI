@@ -40,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           });
 
           const response = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite-image',
+            model: 'gemini-1.5-flash',
             contents: {
               parts: [{ text: `${prompt} - professional high-quality UI asset, beautiful design, clean aesthetics` }]
             }

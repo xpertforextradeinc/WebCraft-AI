@@ -348,15 +348,12 @@ export default function App() {
           }),
         });
 
-        if (response.status === 402) {
-          throw new Error("Insufficient credits. Please upgrade or purchase more generations.");
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Generation failed with status ${response.status}`);
         }
 
         const data = await response.json();
-
-        if (data.error) {
-          throw new Error(data.error);
-        }
         
         setGeneratedMedia({
           url: data.url,

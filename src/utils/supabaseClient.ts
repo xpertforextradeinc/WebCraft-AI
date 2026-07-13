@@ -44,16 +44,23 @@ export const getSupabaseProjectRef = () => {
   }
 };
 
-// Fallback to a valid-formatted placeholder URL and key to prevent createClient from throwing a fatal runtime error at module load time.
-const safeSupabaseUrl = isSupabaseConfigured ? supabaseUrl : 'https://placeholder-please-configure-env.supabase.co';
-
-// Use a syntactically valid mock JWT token structure for fallback key to prevent browsers (like Safari/Webkit)
-// from throwing "DOMException: The string did not match the expected pattern" when decoding base64 payload.
-const safeActiveKey = isSupabaseConfigured ? activeKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIn0.cGxhY2Vob2xkZXI';
-
-export const supabase = createClient(safeSupabaseUrl, safeActiveKey, {
+// Create a truly inert dummy client to avoid any SDK-internal JWT decoding errors
+const dummySupabase = {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  }
-});
+    getSession: async () => ({ data: { session: null }, error: null }),
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null }),
+  },
+  from: () => ({
+    select: () => ({ data: [], error: 'Supabase not configured' }),
+    insert: () => ({ data: null, error: 'Supabase not configured' }),
+  }),
+} as any;
+
+export const supabase = isSupabaseConfigured 
+  ? createClient(supabaseUrl!, activeKey!, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    })
+  : dummySupabase;

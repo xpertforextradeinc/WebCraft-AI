@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx server.dev.ts",
     "build": "vite build",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "health-check": "node scripts/health-check.js",
+    "clean": "rm -rf dist .vite .turbo .next node_modules/.cache"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

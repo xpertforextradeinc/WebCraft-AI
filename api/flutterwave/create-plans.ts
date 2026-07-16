@@ -15,12 +15,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Server-side logging only - DO NOT send actual value to client
   console.log(`[DEBUG] FLUTTERWAVE_SECRET_KEY env var presence: ${!!secretKey}, length: ${secretKey ? secretKey.length : 0}`);
 
-  // If FLUTTERWAVE_SECRET_KEY is missing or looks like the template default, fail immediately
+  // If FLUTTERWAVE_SECRET_KEY is missing or looks like the template default, fall back gracefully to sandbox mode
   if (!secretKey || secretKey.trim() === "" || secretKey === "CzsFdN1EZoFZo4eVSzOgZDcp58sU03kP") {
-    console.warn("FLUTTERWAVE_SECRET_KEY is missing, empty, or uses the template placeholder value.");
-    return res.status(401).json({
-      success: false,
-      error: "Payments temporarily unavailable. (Missing or invalid FLUTTERWAVE_SECRET_KEY configuration)"
+    console.warn("FLUTTERWAVE_SECRET_KEY is missing, empty, or uses the template placeholder value. Falling back to sandbox/mock plans.");
+    
+    const mockPlans = [
+      { id: 111111, name: "WebCraft AI Weekly", amount: 12000, interval: "weekly", currency: "NGN", plan_token: "mock_weekly", status: "mocked" },
+      { id: 222222, name: "WebCraft AI Monthly", amount: 24000, interval: "monthly", currency: "NGN", plan_token: "mock_monthly", status: "mocked" },
+      { id: 333333, name: "WebCraft AI Yearly", amount: 240000, interval: "yearly", currency: "NGN", plan_token: "mock_yearly", status: "mocked" }
+    ];
+
+    return res.status(200).json({
+      success: true,
+      plans: mockPlans,
+      mode: "sandbox"
     });
   }
 

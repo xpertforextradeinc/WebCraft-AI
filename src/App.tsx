@@ -6,6 +6,10 @@
 import React, { useState, useEffect } from 'react';
 import { templates } from './templates';
 import { supabase, isSupabaseConfigured, getSupabaseProjectRef } from './utils/supabaseClient';
+import Navigation from './components/Navigation';
+import BuilderView from './components/BuilderView';
+import TemplatesView from './components/TemplatesView';
+import HistoryView from './components/HistoryView';
 import { 
   Sparkles, 
   Lock, 
@@ -73,6 +77,7 @@ const modeOptions = [
 ];
 
 export default function App() {
+  const [activeView, setActiveView] = useState<'builder' | 'templates' | 'history'>('builder');
   const [prompt, setPrompt] = useState('');
   const [followUpPrompt, setFollowUpPrompt] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
@@ -98,6 +103,7 @@ export default function App() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [authError, setAuthError] = useState('');
   const [showHostingUpsell, setShowHostingUpsell] = useState(false);
+  const [includeAuth, setIncludeAuth] = useState(false);
   
   // Custom dropdown open state
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -114,6 +120,7 @@ export default function App() {
     }
   });
   const [loadingFlwPlans, setLoadingFlwPlans] = useState(false);
+  const [flwPlansError, setFlwPlansError] = useState<string | null>(null);
 
   // Helper: Retrieve or generate a persistent local Guest ID for session-based credits tracking
   const getOrCreateGuestId = () => {
@@ -321,10 +328,14 @@ export default function App() {
   }, []);
 
   const syncFlwPlans = async (force = false) => {
-    if (!import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY) return;
-    if (!force && flwPlans.length > 0) return; // Skip if already cached/loaded unless forced
+    if (!import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY) {
+      setFlwPlansError("Payments temporarily unavailable. (Missing public key)");
+      return;
+    }
+    if (!force && flwPlans.length > 0 && !flwPlansError) return; // Skip if already cached/loaded unless forced and no error
 
     setLoadingFlwPlans(true);
+    setFlwPlansError(null);
     try {
       const res = await fetch('/api/flutterwave/create-plans');
       if (!res.ok) {
@@ -334,9 +345,14 @@ export default function App() {
       if (data.success && data.plans) {
         setFlwPlans(data.plans);
         localStorage.setItem('webcraft_flw_plans', JSON.stringify(data.plans));
+      } else {
+        throw new Error(data.error || "Failed to load plans");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching or establishing Flutterwave plans:", err);
+      setFlwPlansError("Payments temporarily unavailable.");
+      setFlwPlans([]);
+      localStorage.removeItem('webcraft_flw_plans');
     } finally {
       setLoadingFlwPlans(false);
     }
@@ -416,7 +432,8 @@ export default function App() {
               existingCode: isFollowUp ? generatedCode : null,
               model: selectedModel,
               userId: activeUserId,
-              email: activeUserEmail
+              email: activeUserEmail,
+              includeAuth: includeAuth
           }),
         });
         
@@ -717,439 +734,75 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 md:py-12">
-        {/* Short Premium Hero Moment */}
-        <div className="text-center pb-12 max-w-3xl mx-auto animate-fade-in">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full bg-violet-50 border border-violet-100/60 shadow-xs">
-            <Sparkles className="text-violet-600 animate-pulse" size={12} />
-            <span className="text-[10px] text-violet-700 font-extrabold uppercase tracking-widest">Multi-Model Autopilot v2.0</span>
-          </div>
-          <h2 className="text-3xl md:text-5xl font-black text-slate-950 tracking-tight leading-tight mb-4">
-            Describe your idea. <br className="hidden sm:inline" />
-            <span className="bg-gradient-to-r from-violet-600 via-indigo-600 to-fuchsia-600 bg-clip-text text-transparent drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
-              Watch it build itself.
-            </span>
-          </h2>
-          <p className="text-sm md:text-base text-slate-500 font-medium max-w-lg mx-auto leading-relaxed">
-            WebCraft AI coordinates Gemini & OpenAI dynamically to assemble stunning layouts, refine prose, generate tailored illustrations, and bake responsive features automatically.
-          </p>
-        </div>
+      <Navigation
+        activeView={activeView}
+        setActiveView={setActiveView}
+        isProPlan={isProPlan}
+        setShowPaymentModal={setShowPaymentModal}
+      />
 
-        {/* Dynamic Warning Hook for Locked Models */}
-        {['refine', 'image', 'video'].includes(generationMode) && !isProPlan && (!profile || profile.media_credits <= 0) && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 mb-8 flex items-center justify-between shadow-md shadow-amber-500/5 animate-fade-in flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-amber-100 text-amber-700 rounded-xl">
-                <Lock size={18} />
-              </div>
-              <div>
-                <h4 className="font-extrabold text-amber-900 text-sm">Premium Feature Locked / No Credits</h4>
-                <p className="text-xs text-amber-700">OpenAI refinement, high-fidelity AI Image assets, and cinematic Video Hero Banners are available on our Pro Plan.</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
-              title="Unlock Pro Plan"
-            >
-              Unlock Pro Plan
-            </button>
-          </div>
+      <main className="max-w-7xl mx-auto px-6 py-8 md:py-12 pb-24 md:pb-12">
+        {activeView === 'builder' && (
+          <BuilderView
+            prompt={prompt}
+            setPrompt={setPrompt}
+            followUpPrompt={followUpPrompt}
+            setFollowUpPrompt={setFollowUpPrompt}
+            generatedCode={generatedCode}
+            setGeneratedCode={setGeneratedCode}
+            loading={loading}
+            iframeSize={iframeSize}
+            setIframeSize={setIframeSize}
+            generationMode={generationMode}
+            setGenerationMode={setGenerationMode}
+            isProPlan={isProPlan}
+            generatedMedia={generatedMedia}
+            setGeneratedMedia={setGeneratedMedia}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            dropdownOpen={dropdownOpen}
+            setDropdownOpen={setDropdownOpen}
+            generateWebsite={generateWebsite}
+            downloadCode={downloadCode}
+            handlePublishClick={handlePublishClick}
+            insertMediaIntoLayout={insertMediaIntoLayout}
+            profile={profile}
+            setShowPaymentModal={setShowPaymentModal}
+            includeAuth={includeAuth}
+            setIncludeAuth={setIncludeAuth}
+          />
         )}
 
-        {/* Central Controls Platform Panel */}
-        <div className="bg-white border border-slate-200/80 rounded-3xl shadow-xl shadow-slate-100/50 p-6 md:p-8 mb-12 transition-all duration-300 hover:shadow-2xl hover:shadow-slate-100/70">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Generation Mode Control - Premium Custom Dropdown */}
-            <div className="flex flex-col gap-1.5 md:w-80 relative">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Generation Mode</label>
-              
-              {/* Dropdown Toggle Button */}
-              <button
-                type="button"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-200/80 rounded-xl font-semibold text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white transition-all text-left shadow-xs cursor-pointer z-20 relative"
-              >
-                <div className="flex items-center gap-2.5">
-                  {(() => {
-                    const currentMode = modeOptions.find(o => o.id === generationMode) || modeOptions[0];
-                    const IconComp = currentMode.icon;
-                    return (
-                      <>
-                        <div className={`p-1.5 rounded-lg ${currentMode.color} border shadow-xs`}>
-                          <IconComp size={16} />
-                        </div>
-                        <div>
-                          <span className="block font-bold text-slate-900 text-xs sm:text-sm">{currentMode.label}</span>
-                          <span className="block text-[10px] text-slate-500 font-medium">{currentMode.desc}</span>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-                <span className={`text-[10px] text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}>▼</span>
-              </button>
-
-              {/* Outside click handler overlay */}
-              {dropdownOpen && (
-                <div 
-                  className="fixed inset-0 z-10 cursor-default" 
-                  onClick={() => setDropdownOpen(false)}
-                />
-              )}
-
-              {/* Styled Dropdown Panel with proper transitions */}
-              <div 
-                className={`absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-1.5 transition-all duration-200 origin-top ${
-                  dropdownOpen 
-                    ? 'opacity-100 translate-y-0 scale-100 visible' 
-                    : 'opacity-0 -translate-y-2 scale-95 invisible pointer-events-none'
-                }`}
-              >
-                <div className="flex flex-col gap-1">
-                  {modeOptions.map((opt) => {
-                    const IconComp = opt.icon;
-                    const isSelected = generationMode === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => {
-                          setGenerationMode(opt.id);
-                          setDropdownOpen(false);
-                        }}
-                        className={`w-full flex items-center gap-3 p-2.5 rounded-lg transition-all text-left cursor-pointer ${
-                          isSelected 
-                            ? 'bg-violet-50/70 text-violet-950 border border-violet-100/60 shadow-xs' 
-                            : 'hover:bg-slate-50 text-slate-700 border border-transparent'
-                        }`}
-                      >
-                        <div className={`p-2 rounded-lg transition-all ${
-                          isSelected ? opt.color : 'text-slate-500 bg-slate-100'
-                        }`}>
-                          <IconComp size={16} />
-                        </div>
-                        <div className="flex-grow">
-                          <div className="flex items-center justify-between">
-                            <span className="font-extrabold text-xs text-slate-900">{opt.label}</span>
-                            {isSelected && (
-                              <span className="text-[10px] bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-2 py-0.5 rounded-md font-bold shadow-xs">
-                                Selected
-                              </span>
-                            )}
-                          </div>
-                          <span className="block text-[10px] text-slate-500 font-medium leading-normal mt-0.5">{opt.desc}</span>
-                          <span className="block text-[9px] text-slate-400 leading-tight mt-0.5 font-medium">{opt.details}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Main Prompt Field */}
-            <div className="flex flex-col gap-1.5 flex-grow">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">What should we create?</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder={
-                    generationMode === 'layout' ? "Describe your complete website layout (e.g. A gorgeous SaaS dashboard)..." :
-                    generationMode === 'refine' ? "Provide fine-tuning instructions for OpenAI..." :
-                    generationMode === 'image' ? "Describe a specific image asset to generate (e.g. Modern illustration of team working)..." :
-                    "Specify keywords for a breathtaking background video hero loop..."
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') generateWebsite();
-                  }}
-                  className="flex-grow p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white transition-all shadow-inner placeholder:text-slate-400 font-medium"
-                />
-                
-                <button
-                  onClick={() => generateWebsite()}
-                  disabled={loading}
-                  className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-md shadow-violet-100 hover:shadow-lg cursor-pointer flex items-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <RefreshCw className="animate-spin" size={16} />
-                      Thinking...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={16} />
-                      Generate
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Template Board */}
-        <div className="mb-12">
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Instant Template Frameworks</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {templates.map((template) => (
-              <button
-                key={template.name}
-                onClick={() => {
-                  setGenerationMode('layout');
-                  generateWebsite(false, template.prompt);
-                }}
-                className="p-4 bg-white border border-slate-200/80 rounded-2xl hover:border-violet-500 hover:shadow-xl hover:shadow-violet-500/5 hover:-translate-y-1 text-left transition-all duration-350 cursor-pointer group shadow-sm shadow-slate-100/50"
-              >
-                <div className="text-xs font-extrabold text-slate-950 mb-1.5 group-hover:text-violet-600 transition-colors">{template.name}</div>
-                <div className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed font-medium">{template.prompt}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Dynamic Sandbox Multi-Environment Staging Canvas */}
-        {(generatedCode || generatedMedia) && (
-          <div className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-slate-250/50 overflow-hidden mb-12 animate-fade-in">
-            <div className="bg-slate-50/60 border-b border-slate-200 px-6 py-4 flex items-center justify-between flex-wrap gap-4">
-              <div className="flex gap-2">
-                {generatedCode && (
-                  <button
-                    onClick={() => setActiveTab('website')}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${
-                      activeTab === 'website'
-                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-100/60'
-                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                    }`}
-                  >
-                    <Layout size={14} />
-                    Live Website Canvas
-                  </button>
-                )}
-                {generatedMedia && (
-                  <button
-                    onClick={() => setActiveTab('media')}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 relative cursor-pointer ${
-                      activeTab === 'media'
-                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-100/60'
-                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                    }`}
-                  >
-                    {generatedMedia.type === 'image' ? <ImageIcon size={14} /> : <VideoIcon size={14} />}
-                    AI Media Staging
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
-                  </button>
-                )}
-              </div>
-
-              {/* Utility Toolbars */}
-              {activeTab === 'website' && generatedCode && (
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => setIframeSize('desktop')} 
-                    className={`p-2 rounded-lg transition cursor-pointer ${iframeSize === 'desktop' ? 'bg-violet-50 text-violet-600' : 'text-slate-400 hover:bg-slate-100'}`}
-                    title="Desktop Preview"
-                  >
-                    <Laptop size={16} />
-                  </button>
-                  <button 
-                    onClick={() => setIframeSize('mobile')} 
-                    className={`p-2 rounded-lg transition cursor-pointer ${iframeSize === 'mobile' ? 'bg-violet-50 text-violet-600' : 'text-slate-400 hover:bg-slate-100'}`}
-                    title="Mobile View"
-                  >
-                    <Smartphone size={16} />
-                  </button>
-                  <div className="h-4 w-[1px] bg-slate-200 mx-1"></div>
-                  <button 
-                    onClick={handlePublishClick} 
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
-                  >
-                    <Send size={12} />
-                    Publish
-                  </button>
-                  <button 
-                    onClick={downloadCode} 
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
-                  >
-                    <Download size={12} />
-                    Download HTML
-                  </button>
-                  <button 
-                    onClick={() => navigator.clipboard.writeText(generatedCode).then(() => alert('Prinstine HTML Code copied!'))} 
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
-                  >
-                    <Copy size={12} />
-                    Copy Code
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="p-6 bg-slate-50">
-              {activeTab === 'website' && generatedCode && (
-                <div className="flex flex-col gap-4 animate-fade-in">
-                  {/* Inline Staging Follow Up Prompt */}
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={followUpPrompt}
-                      onChange={(e) => setFollowUpPrompt(e.target.value)}
-                      placeholder="Instruct WebCraft AI on design refitting, sections, or styling details..."
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') generateWebsite(true);
-                      }}
-                      className="flex-grow p-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-sm font-medium"
-                    />
-                    <button
-                      onClick={() => generateWebsite(true)}
-                      disabled={loading}
-                      className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-md shadow-violet-100 disabled:from-violet-300 disabled:to-indigo-300 flex items-center gap-2 cursor-pointer"
-                    >
-                      {loading ? <RefreshCw className="animate-spin" size={16} /> : <Check size={16} />}
-                      Update Code
-                    </button>
-                  </div>
-                  
-                  {/* Staged HTML Renderer IFrame */}
-                  <div className="bg-white rounded-2xl shadow-inner border border-slate-200/80 p-2">
-                    <iframe
-                      srcDoc={generatedCode}
-                      title="WebCraft AI Staging Preview"
-                      className={`w-full h-[600px] border-0 rounded-xl bg-white transition-all duration-300 ${
-                        iframeSize === 'mobile' ? 'max-w-[375px] mx-auto shadow-lg' : 'max-w-full'
-                      }`}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'media' && generatedMedia && (
-                <div className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-lg p-6 animate-fade-in">
-                  <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-4">
-                    <div>
-                      <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                        {generatedMedia.type === 'image' ? (
-                          <ImageIcon size={18} className="text-violet-600" />
-                        ) : (
-                          <VideoIcon size={18} className="text-purple-600 animate-pulse" />
-                        )}
-                        Staged AI {generatedMedia.type === 'image' ? 'Image Asset' : 'Motion Hero'}
-                      </h3>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
-                        Source Engine: <span className="text-slate-600 font-mono font-extrabold">{generatedMedia.source}</span>
-                      </p>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {generatedCode && (
-                        <button
-                          onClick={insertMediaIntoLayout}
-                          className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg text-xs font-extrabold transition shadow-sm cursor-pointer"
-                        >
-                          <Layers size={13} />
-                          Insert into Layout
-                        </button>
-                      )}
-                      <a
-                        href={generatedMedia.url}
-                        download={`webcraft-ai-${generatedMedia.type}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-extrabold transition shadow-sm cursor-pointer"
-                      >
-                        <Download size={13} />
-                        Download Asset
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* Rendering Content Box */}
-                  <div className="relative rounded-xl overflow-hidden border border-slate-100 bg-slate-950 flex items-center justify-center min-h-[350px] shadow-inner">
-                    {generatedMedia.type === 'image' ? (
-                      <img
-                        src={generatedMedia.url}
-                        alt="AI Generation results"
-                        className="max-w-full max-h-[450px] object-contain rounded-lg"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <video
-                        src={generatedMedia.url}
-                        controls
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        className="w-full max-h-[450px] object-contain rounded-lg"
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        {activeView === 'templates' && (
+          <TemplatesView
+            onSelectTemplate={(templatePrompt) => {
+              setGenerationMode('layout');
+              setPrompt(templatePrompt);
+              setActiveView('builder');
+              generateWebsite(false, templatePrompt);
+            }}
+          />
         )}
 
-        {/* Real-Time Database Generations History Feed */}
-        {recentGenerations.length > 0 && (
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-100/50 mb-12 animate-fade-in">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
-              <History size={16} className="text-violet-600" />
-              Dynamic Generations History
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {recentGenerations.map((gen) => (
-                <div key={gen.id} className="border border-slate-150 rounded-2xl p-5 bg-slate-50/50 hover:bg-white hover:border-violet-200 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 shadow-sm">
-                  <div className="flex items-center justify-between mb-3.5 border-b border-slate-100 pb-2">
-                    <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-100 flex items-center gap-1">
-                      {gen.type === 'layout' || gen.type === 'refine' ? <Layout size={10} /> : gen.type === 'image' ? <ImageIcon size={10} /> : <VideoIcon size={10} />}
-                      {gen.type}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {new Date(gen.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 line-clamp-2 italic mb-4 font-medium">
-                    "{gen.prompt}"
-                  </p>
-                  
-                  <div className="flex justify-end gap-1.5">
-                    {gen.type === 'layout' || gen.type === 'refine' ? (
-                      <button
-                        onClick={() => {
-                          setGeneratedCode(gen.output_content);
-                          setGeneratedMedia(null);
-                          setActiveTab('website');
-                          alert("History restored: Loaded website layout!");
-                        }}
-                        className="text-[10px] font-bold px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-violet-500 hover:text-violet-600 transition duration-200"
-                      >
-                        Load Website
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setGeneratedMedia({
-                            url: gen.output_content,
-                            type: gen.type as 'image' | 'video',
-                            source: 'Supabase History'
-                          });
-                          setActiveTab('media');
-                          alert(`History restored: Loaded AI ${gen.type}!`);
-                        }}
-                        className="text-[10px] font-bold px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-violet-500 hover:text-violet-600 transition duration-200"
-                      >
-                        Load Media
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        {activeView === 'history' && (
+          <HistoryView
+            recentGenerations={recentGenerations}
+            onLoadWebsite={(code) => {
+              setGeneratedCode(code);
+              setGeneratedMedia(null);
+              setActiveTab('website');
+              setActiveView('builder');
+            }}
+            onLoadMedia={(url, type) => {
+              setGeneratedMedia({
+                url,
+                type,
+                source: 'Supabase History'
+              });
+              setActiveTab('media');
+              setActiveView('builder');
+            }}
+          />
         )}
       </main>
 
@@ -1354,6 +1007,8 @@ export default function App() {
                     Plans status:{' '}
                     {loadingFlwPlans ? (
                       <span className="text-amber-600 font-bold animate-pulse">Syncing...</span>
+                    ) : flwPlansError ? (
+                      <span className="text-rose-600 font-bold">✗ {flwPlansError}</span>
                     ) : flwPlans.length > 0 ? (
                       <span className="text-emerald-600 font-bold">✓ Cached ({flwPlans.length} Plans)</span>
                     ) : (
@@ -1376,8 +1031,8 @@ export default function App() {
                 <button
                   onClick={async () => {
                     const publicKey = import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY;
-                    if (!publicKey) {
-                      alert("Payments temporarily unavailable. (Missing VITE_FLUTTERWAVE_PUBLIC_KEY configuration)");
+                    if (!publicKey || flwPlansError) {
+                      alert("Payments temporarily unavailable.");
                       return;
                     }
 
@@ -1462,14 +1117,16 @@ export default function App() {
                       alert("Flutterwave SDK failed to load. Please refresh the page and try again.");
                     }
                   }}
-                  disabled={!import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY}
+                  disabled={!import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || !!flwPlansError}
                   className={`w-full py-2.5 text-white font-bold text-xs rounded-xl shadow-md transition-all duration-200 ${
-                    import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY
+                    (import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY && !flwPlansError)
                       ? 'bg-amber-600 hover:bg-amber-700 hover:shadow-lg cursor-pointer'
                       : 'bg-slate-400 cursor-not-allowed opacity-75'
                   }`}
                 >
-                  {import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY ? `Pay with Flutterwave (${selectedFlwPlan === 'weekly' ? '₦12k/Wk' : selectedFlwPlan === 'monthly' ? '₦24k/Mo' : '₦240k/Yr'})` : "Flutterwave Temporarily Unavailable"}
+                  {(!import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || flwPlansError)
+                    ? "Payments temporarily unavailable"
+                    : `Pay with Flutterwave (${selectedFlwPlan === 'weekly' ? '₦12k/Wk' : selectedFlwPlan === 'monthly' ? '₦24k/Mo' : '₦240k/Yr'})`}
                 </button>
               </div>
             </div>

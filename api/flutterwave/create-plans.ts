@@ -11,9 +11,14 @@ interface FlutterwavePlan {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
-  if (!secretKey) {
-    console.error("FLUTTERWAVE_SECRET_KEY is not configured");
-    return res.status(500).json({ error: "FLUTTERWAVE_SECRET_KEY is not configured" });
+
+  // If FLUTTERWAVE_SECRET_KEY is missing or looks like the template default, fail immediately
+  if (!secretKey || secretKey.trim() === "" || secretKey === "CzsFdN1EZoFZo4eVSzOgZDcp58sU03kP") {
+    console.warn("FLUTTERWAVE_SECRET_KEY is missing, empty, or uses the template placeholder value.");
+    return res.status(401).json({
+      success: false,
+      error: "Payments temporarily unavailable. (Missing or invalid FLUTTERWAVE_SECRET_KEY configuration)"
+    });
   }
 
   try {
@@ -28,8 +33,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!fetchResponse.ok) {
       const errorText = await fetchResponse.text();
-      console.error("Failed to fetch existing Flutterwave plans:", errorText);
-      return res.status(500).json({ error: `Flutterwave API error: ${errorText}` });
+      console.error("Failed to fetch existing Flutterwave plans from API:", errorText);
+      
+      return res.status(fetchResponse.status).json({
+        success: false,
+        error: "Payments temporarily unavailable. (Flutterwave API returned error status)"
+      });
     }
 
     const listData = await fetchResponse.json();
@@ -78,9 +87,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (!createResponse.ok) {
           const createError = await createResponse.text();
-          console.error(`Failed to create Flutterwave plan "${planDef.name}":`, createError);
-          return res.status(500).json({
-            error: `Failed to create Flutterwave plan "${planDef.name}": ${createError}`,
+          console.error(`Failed to create Flutterwave plan "${planDef.name}" via API:`, createError);
+          
+          return res.status(createResponse.status).json({
+            success: false,
+            error: `Payments temporarily unavailable. (Failed to create standard subscription plan: ${planDef.name})`
           });
         }
 
@@ -102,9 +113,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: true,
       plans: results,
+      mode: "live"
     });
   } catch (err: any) {
     console.error("Error creating Flutterwave plans:", err);
-    return res.status(500).json({ error: `Internal server error: ${err.message || err}` });
+    return res.status(500).json({
+      success: false,
+      error: `Payments temporarily unavailable. (Internal error: ${err.message || err})`
+    });
   }
 }

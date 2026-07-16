@@ -3,13 +3,14 @@ import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
 import { checkUserCredits, decrementUserCredits, logGenerationEvent } from '../src/utils/supabaseServer';
 import { syndicateToTelegram } from './utils/telegram';
+import crypto from 'crypto';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { prompt, existingCode, model, userId, email } = req.body;
+  const { prompt, existingCode, model, userId, email, includeAuth } = req.body;
   if (!prompt) {
     return res.status(400).json({ error: "Prompt is required" });
   }
@@ -50,6 +51,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   </script>
   <noscript>Powered by <a href="https://www.smartsupp.com" target="_blank">Smartsupp</a></noscript>`;
 
+  let finalSystemPrompt = systemPrompt;
+  if (includeAuth) {
+    const host = req.headers.host || 'ais-dev-6eos3azabtauqxmgzshqjz-571192572309.europe-west1.run.app';
+    const siteId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+    
+    finalSystemPrompt += `
+
+CRITICAL REQUIREMENT - INCLUDE WORKING USER AUTH (AUTH STARTER KIT):
+The user wants this generated website to include a working signup/login system backed by our existing Supabase database.
+You MUST embed a premium, visually stunning, fully functional user account management UI and backend integration into the generated HTML.
+Obey these rules:
+1. Navigation Controls & Logged In Widget:
+   - Provide a "Sign In" or "Log In" button in the navigation header.
+   - When a user is logged in, this should dynamically update to a user profile avatar or displaying "Welcome, [user-email]" alongside a "Log Out" button.
+2. Sign Up & Sign In Forms UI:
+   - Create a gorgeous modal overlay styled with Tailwind CSS (using slick transitions, glassmorphism or high-contrast modern card styles, custom input fields, elegant state transition animations) containing both login and registration tabs.
+3. Live Integration JavaScript Script:
+   - Include a JavaScript block at the bottom of the body (before analytics/Smartsupp scripts) that handles signup, login, session persistence, and error states.
+   - The auth API endpoint is exactly: 'https://${host}/api/site-auth'
+   - The unique hardcoded site_id for this generated site is: '${siteId}'
+   - API Request Formats:
+     - To Sign Up: Send a POST request to 'https://${host}/api/site-auth' with JSON headers and body:
+       { "action": "signup", "site_id": "${siteId}", "email": "userEmail", "password": "userPassword" }
+     - To Log In: Send a POST request to 'https://${host}/api/site-auth' with JSON headers and body:
+       { "action": "login", "site_id": "${siteId}", "email": "userEmail", "password": "userPassword" }
+   - Success and Failure Handlers:
+     - On Success (signup/login): Save the returned user info in localStorage under the key 'site_session' (e.g. localStorage.setItem('site_session', JSON.stringify(data))).
+     - Close the auth modal, show a beautiful, modern floating toast alert (notification) on the site, and update the UI elements immediately.
+     - On Failure: Display a user-friendly error message in a custom red alert box within the modal form itself.
+4. Session Persistence & Log Out:
+   - On page load (DOMContentLoaded), check if localStorage.getItem('site_session') exists. If so, parse it and update the navbar/header UI immediately to show the logged-in state.
+   - When clicking "Log Out", remove the session (localStorage.removeItem('site_session')) and reset the UI to its default logged-out state.
+5. Absolute Design Harmony:
+   - Keep the design high contrast, professional, responsive, and 100% aligned with the rest of the website's theme and font choice.`;
+  }
+
   try {
     let code = "";
     if (model === "openai") {
@@ -57,7 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const response = await openai.chat.completions.create({
         model: "gpt-4",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: finalSystemPrompt },
           { role: "user", content: existingCode ? `Existing code: ${existingCode}\nFollow-up: ${prompt}` : prompt }
         ],
       });
@@ -73,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         model: "gemini-3.5-flash",
         contents: existingCode ? `Existing code: ${existingCode}\nFollow-up: ${prompt}` : prompt,
         config: {
-            systemInstruction: systemPrompt
+            systemInstruction: finalSystemPrompt
         }
       });
       code = response.text || "";

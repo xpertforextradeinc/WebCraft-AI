@@ -1,6 +1,6 @@
-# SimuPay Pro Contributor Guidelines
+# WebCraft AI Contributor Guidelines
 
-Welcome to the **SimuPay Pro** contributor guide! We are thrilled that you are contributing to our modern AI-assisted fintech website building and payment orchestration platform.
+Welcome to the **WebCraft AI** contributor guide! We are thrilled that you are contributing to our modern AI-assisted fintech website building and payment orchestration platform.
 
 To maintain production-quality code, please review these architectural, code quality, and styling guidelines before making changes.
 
@@ -13,6 +13,8 @@ To maintain production-quality code, please review these architectural, code qua
 - **Database & Auth:** Supabase (PostgreSQL) client configurations, using Row Level Security (RLS) policies.
 - **AI Synthesis Engine:** `@google/genai` TypeScript SDK utilizing the standard `gemini-2.5-flash` model, driving prompt templates defined inside `/api/generate.ts`.
 - **Payment Gateway:** Flutterwave client-side SDK integration and server-side dynamic subscription plan creators (`/api/flutterwave/create-plans.ts`).
+  * **💳 Live Billing Engine:** WebCraft AI utilizes a fully production-ready, live Flutterwave API integration to process transactions. All currency conversions (NGN/USD) and subscription credit allocations are processed live on the main production network.
+  * **API Keys:** Ensure your local `.env` file contains valid production keys (`FLUTTERWAVE_SECRET_KEY` and `VITE_FLUTTERWAVE_PUBLIC_KEY`) matching the live merchant dashboard before deploying orchestrator routines. If left empty, the system will fall back gracefully to sandbox simulation mode.
 
 ---
 
@@ -90,4 +92,4 @@ npm run health-check
 npm run dev
 ```
 
-Thank you for contributing to the future of **SimuPay Pro**! 🚀
+Thank you for contributing to the future of **WebCraft AI**! 🚀

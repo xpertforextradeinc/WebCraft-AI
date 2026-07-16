@@ -31,23 +31,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       rawBody = Buffer.concat(buffers).toString('utf8');
     }
 
-    // 2. Validate Flutterwave Hash Signature
+    // --- Feature 3: Cryptographic Secret Hash Header Check ---
+    // Validate that the request signature header ('verif-hash') aligns perfectly with the secure secret hash configured on the dashboard and in environment variables.
     const flwSignature = req.headers['verif-hash'] as string;
     if (!flwSignature) {
-      console.error("Flutterwave verif-hash header is missing");
-      return res.status(401).json({ error: "Missing verif-hash header" });
+      console.error("[SECURITY] Flutterwave verif-hash header is missing. Cryptographic signature check failed.");
+      return res.status(401).json({ error: "Unauthorized signature payload verification failed. Missing verif-hash header." });
     }
 
     const localSecretHash = process.env.FLUTTERWAVE_SECRET_HASH;
     if (!localSecretHash) {
-      console.error("FLUTTERWAVE_SECRET_HASH is not configured");
-      return res.status(500).json({ error: "FLUTTERWAVE_SECRET_HASH is not configured" });
+      console.error("[SECURITY] FLUTTERWAVE_SECRET_HASH is not configured in environment variables.");
+      return res.status(500).json({ error: "Cryptographic configuration error. Secret hash is not set." });
     }
 
     if (flwSignature !== localSecretHash) {
-      console.error("Flutterwave verif-hash verification failed");
-      return res.status(401).json({ error: "Unauthorized: Hash mismatch" });
+      console.error("[SECURITY] Flutterwave verif-hash mismatch. Unauthorized signature payload verification failed.");
+      return res.status(401).json({ error: "Unauthorized signature payload verification failed." });
     }
+
+    console.log("🔒 [SECURITY] Feature 3 Cryptographic Secret Hash Header Check passed successfully.");
 
     // Parse payload after validation
     const payload = JSON.parse(rawBody);

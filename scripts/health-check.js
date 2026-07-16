@@ -8,7 +8,7 @@ const yellow = (text) => `\x1b[33m${text}\x1b[0m`;
 const cyan = (text) => `\x1b[36m${text}\x1b[0m`;
 const bold = (text) => `\x1b[1m${text}\x1b[0m`;
 
-console.log(bold(cyan("\n=== SimuPay Pro Health & Integrity Diagnostics ===\n")));
+console.log(bold(cyan("\n=== WebCraft AI Health & Integrity Diagnostics ===\n")));
 
 let issuesFound = 0;
 let warningsFound = 0;

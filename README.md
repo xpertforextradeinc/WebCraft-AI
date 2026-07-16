@@ -1,6 +1,6 @@
-# SimuPay Pro – AI-Powered High-Converting SME Website Builder
+# WebCraft AI – AI-Powered High-Converting SME Website Builder
 
-SimuPay Pro is a production-grade, full-stack AI website builder and subscription engine. It enables small-to-medium businesses (SMEs) to generate conversion-optimized, professional web presences in minutes. Powered by the modern `@google/genai` TypeScript SDK and Gemini, SimuPay Pro bridges high-fidelity design intelligence with real business psychology to maximize consumer actions.
+WebCraft AI is a production-grade, full-stack AI website builder and subscription engine. It enables small-to-medium businesses (SMEs) to generate conversion-optimized, professional web presences in minutes. Powered by the modern `@google/genai` TypeScript SDK and Gemini, WebCraft AI bridges high-fidelity design intelligence with real business psychology to maximize consumer actions.
 
 ---
 
@@ -30,7 +30,8 @@ Features a cosmetic multi-step progress sequencer resembling platforms like Whop
 
 ### 3. Subscription & Billing Orchestration (Flutterwave Client/Server Integration)
 - Connects to Flutterwave for subscription billing using dynamic weekly, monthly, and yearly plan tiers (₦12,000, ₦24,000, and ₦240,000).
-- **Graceful Sandbox Fallback:** Automatically falls back to local sandbox simulations when Flutterwave API keys are unconfigured, allowing developers to demo payment success and add credits without setup friction.
+- **💳 Live Billing Engine:** WebCraft-AI utilizes a fully production-ready, live Flutterwave API integration to process transactions. All currency conversions (NGN/USD) and subscription credit allocations are processed live on the main production network.
+- **Graceful Sandbox Fallback:** Automatically falls back to local sandbox simulations when Flutterwave API keys are unconfigured, allowing developers to demo payment success and add credits without setup friction. Ensure your local `.env` file contains valid production keys (`FLUTTERWAVE_SECRET_KEY`) matching the live merchant dashboard before deploying orchestrator routines.
 
 ### 4. SPA Clean URLs & Rewrite Configuration (`/vercel.json`)
 - Fully configured Vercel rules enforce clean URLs, stripping extensions and routing all client sub-paths back to `/index.html`. This ensures sub-page refreshes never fail with 404 errors.

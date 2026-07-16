@@ -38,24 +38,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   
   4. Strategic Information Hierarchy: Plan the page layout sections based on a logical conversion funnel. Do not use a rigid, fixed template sequence. Structure sections in a clear hierarchy of importance for a first-time visitor (e.g., a highly captivating Hero & Value Proposition first, Credibility/Social Proof/Partners second, Core Features & Benefits third, Specific Offerings/Pricing plans fourth, followed by interactive FAQs, direct final CTA, and a complete Footer).
   
-  5. Incremental Refinement & Preservation (For Follow-Up Requests): If existing code is provided for refinement, you must focus EXCLUSIVELY on implementing the requested changes. Preserve all existing design styles, color palettes, visual themes, typography scales, layout patterns, script tags, and unchanged sections exactly as they are. Do NOT regenerate unrelated sections or let the original design drift.
+  5. Conversion & Business Intelligence Requirements:
+     - **Singular Conversion Goal**: Every generated site must orient visitors towards a clear, singular primary conversion action (e.g., book a consultation call, buy now, sign up for a demo, or send a WhatsApp message) rather than a weak "contact us" page with zero urgency or direction. Place this primary action prominently in both the navigation menu and Hero section.
+     - **High-Converting Pricing Structures**: When the prompt implies or requests pricing details, implement proven conversion-optimized layouts:
+       - Showcase anchor pricing (e.g., show a crossed-out original "was" price alongside the new active price to create a psychological value contrast).
+       - Visually highlight and recommend a specific "middle tier" using an active badge, shadow, or distinct border.
+       - Always format prices using Nigerian Naira (₦ / NGN) whenever the business context is Nigerian.
+     - **Specific Trust Signals**: Integrate appropriate credibility markers suitable for the business type:
+       - Highly plausible and authentic customer testimonials detailing specific benefits received, rather than lazy, generic phrasing like "Great service!".
+       - Clear risk-reversal terms such as satisfaction guarantees, refund policies, or direct confidence-building security assurances.
+       - Professional credentials, certifications, or verifiable-sounding industry achievements.
+     - **Urgency & Action-Specific CTA Phrasing**: All calls-to-action (CTAs) must use highly persuasive, action-oriented, and urgency-aware wording. Replace generic labels like "Learn more" or "Submit" with compelling alternatives like "Book your free consultation", "Claim your free trial", or "Get started today".
+     - **Nigerian SME WhatsApp Conversion**: For businesses specifically positioned in a Nigerian SME or merchant context, default to including high-visibility "WhatsApp click-to-chat" conversion buttons alongside or instead of typical form inputs. WhatsApp is the dominant consumer transaction and customer relationship channel in the Nigerian market.
   
-  6. Structure & Styling: Use semantic, clean HTML5. Use Tailwind CSS utility classes exclusively. Implement a refined, modern aesthetic with consistent spacing rhythm and generous whitespace.
+  6. Incremental Refinement & Preservation (For Follow-Up Requests): If existing code is provided for refinement, you must focus EXCLUSIVELY on implementing the requested changes. Preserve all existing design styles, color palettes, visual themes, typography scales, layout patterns, script tags, and unchanged sections exactly as they are. Do NOT regenerate unrelated sections or let the original design drift.
   
-  7. Responsiveness: Ensure the site is fully mobile-first and works perfectly across all mobile, tablet, and desktop viewports.
+  7. Structure & Styling: Use semantic, clean HTML5. Use Tailwind CSS utility classes exclusively. Implement a refined, modern aesthetic with consistent spacing rhythm and generous whitespace.
   
-  8. Icons & UI Details: Use Lucide React icons or raw SVG paths for clean, scalable, and crisp iconography. Build modular, highly detailed, reusable-looking component blocks. Include smooth transitions, micro-interactions, and visual hover feedback on all clickable elements.
+  8. Responsiveness: Ensure the site is fully mobile-first and works perfectly across all mobile, tablet, and desktop viewports.
   
-  9. Code quality: Write clean, well-commented, and highly maintainable code.
+  9. Icons & UI Details: Use Lucide React icons or raw SVG paths for clean, scalable, and crisp iconography. Build modular, highly detailed, reusable-looking component blocks. Include smooth transitions, micro-interactions, and visual hover feedback on all clickable elements.
   
-  10. Output Constraints:
+  10. Code quality: Write clean, well-commented, and highly maintainable code.
+  
+  11. Output Constraints:
       - Output ONLY the raw HTML and Tailwind CSS code.
       - Do NOT include markdown code blocks (do not wrap in \`\`\`html), do not explain, and do not add conversational text. The output must be ready to be pasted directly into an iframe.
   
-  11. Analytics & Analytics Trigger:
+  12. Analytics & Analytics Trigger:
       Include a <script> tag at the end of the <body> that attaches a click event listener to the document. When an <a> or <button> is clicked, post a message to the parent window: window.parent.postMessage({ type: 'analytics_click', target: event.target.tagName, text: event.target.innerText || event.target.textContent }, '*');
   
-  12. ALSO, include the following Smartsupp Live Chat script at the end of the <body>:
+  13. ALSO, include the following Smartsupp Live Chat script at the end of the <body>:
   <script type="text/javascript">
   var _smartsupp = _smartsupp || {};
   _smartsupp.key = 'c6bc1067a003eba2c1ba3bcaa67b6f806658a486';

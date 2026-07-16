@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, 
   Lock, 
@@ -20,6 +20,19 @@ import {
   Globe
 } from 'lucide-react';
 import { GeneratedMedia, UserProfile } from '../types';
+
+export const progressSteps = [
+  "Analyzing business concept...",
+  "Determining target audience...",
+  "Selecting custom color scheme...",
+  "Structuring conversion funnel...",
+  "Drafting engaging copy...",
+  "Designing custom components...",
+  "Adding WhatsApp click-to-chat...",
+  "Embedding Lucide icon assets...",
+  "Finalizing responsive layouts...",
+  "Generating preview iframe..."
+];
 
 export const modeOptions = [
   { 
@@ -117,6 +130,21 @@ export default function BuilderView({
   includeAuth,
   setIncludeAuth,
 }: BuilderViewProps) {
+
+  const [progressIndex, setProgressIndex] = useState(0);
+
+  useEffect(() => {
+    if (!loading) {
+      setProgressIndex(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setProgressIndex((prev) => (prev + 1) % progressSteps.length);
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [loading]);
 
   const isGeneratingActive = generatedCode || generatedMedia;
 
@@ -311,17 +339,19 @@ export default function BuilderView({
                   <button
                     onClick={() => generateWebsite()}
                     disabled={loading}
-                    className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-md shadow-violet-100 hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap text-xs"
+                    className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-md shadow-violet-100 hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap text-xs min-w-[210px] sm:min-w-[250px]"
                   >
                     {loading ? (
                       <>
-                        <RefreshCw className="animate-spin" size={14} />
-                        Generating...
+                        <RefreshCw className="animate-spin text-white/90" size={14} />
+                        <span key={progressIndex} className="animate-fade-in inline-block text-white/95">
+                          {progressSteps[progressIndex]}
+                        </span>
                       </>
                     ) : (
                       <>
                         <Sparkles size={14} />
-                        Generate Now
+                        <span>Generate Now</span>
                       </>
                     )}
                   </button>
@@ -468,10 +498,21 @@ export default function BuilderView({
                   <button
                     onClick={() => generateWebsite(true)}
                     disabled={loading}
-                    className="px-5 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs transition-all shadow-md disabled:from-violet-300 disabled:to-indigo-300 flex items-center gap-2 cursor-pointer whitespace-nowrap"
+                    className="px-5 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs transition-all shadow-md disabled:from-violet-300 disabled:to-indigo-300 flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap min-w-[210px] sm:min-w-[250px]"
                   >
-                    {loading ? <RefreshCw className="animate-spin" size={14} /> : <Check size={14} />}
-                    Update Layout
+                    {loading ? (
+                      <>
+                        <RefreshCw className="animate-spin text-white/90" size={14} />
+                        <span key={progressIndex} className="animate-fade-in inline-block text-white/95">
+                          {progressSteps[progressIndex]}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={14} />
+                        <span>Update Layout</span>
+                      </>
+                    )}
                   </button>
                 </div>
                 

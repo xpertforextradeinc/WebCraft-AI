@@ -29,7 +29,8 @@ import {
   Database,
   History,
   ShieldAlert,
-  UserCheck
+  UserCheck,
+  Send
 } from 'lucide-react';
 
 export default function App() {
@@ -133,6 +134,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    let isMounted = true;
     let profileSub: any = null;
     let authSub: any = null;
 
@@ -142,6 +144,7 @@ export default function App() {
       if (!isSupabaseConfigured) {
         console.log("Supabase is not configured. Falling back to Guest Local Storage sandbox.");
         const activeUserId = getOrCreateGuestId();
+        if (!isMounted) return;
         setUser(null);
         setProfile({ plan_tier: 'free', media_credits: 5, table_missing: true });
         setIsProPlan(false);
@@ -174,14 +177,20 @@ export default function App() {
           activeUserId = getOrCreateGuestId();
         }
 
+        if (!isMounted) return;
         setUser(activeUser);
 
         // 4. Fetch profile details
         await fetchProfile(activeUserId, activeUser?.email || 'guest@example.com');
 
-        // 5. Establish real-time listener subscription to profile changes
-        profileSub = supabase
-          .channel(`profile-${activeUserId}`)
+        if (!isMounted) return;
+
+        // 5. Establish real-time listener subscription to profile changes with unique channel name
+        const uniqueChannelId = `profile-${activeUserId}-${Math.random().toString(36).substring(2, 11)}`;
+        const channelInstance = supabase.channel(uniqueChannelId);
+        profileSub = channelInstance;
+
+        channelInstance
           .on(
             'postgres_changes',
             {
@@ -191,6 +200,7 @@ export default function App() {
               filter: `id=eq.${activeUserId}`,
             },
             (payload) => {
+              if (!isMounted) return;
               const newProfile = payload.new as any;
               if (newProfile && typeof newProfile === 'object' && 'plan_tier' in newProfile) {
                 setProfile(newProfile);
@@ -198,7 +208,11 @@ export default function App() {
               }
             }
           )
-          .subscribe();
+          .subscribe((status: string) => {
+            if (!isMounted && profileSub) {
+              supabase.removeChannel(profileSub);
+            }
+          });
 
         // 6. Fetch recent generations
         fetchGenerations(activeUserId);
@@ -206,7 +220,9 @@ export default function App() {
       } catch (err) {
         console.error("Initialization error:", err);
       } finally {
-        setAuthLoading(false);
+        if (isMounted) {
+          setAuthLoading(false);
+        }
       }
     };
 
@@ -215,14 +231,17 @@ export default function App() {
     // Listen to Auth state changes
     if (isSupabaseConfigured) {
       const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!isMounted) return;
         if (session?.user) {
           setUser(session.user);
           await fetchProfile(session.user.id, session.user.email || 'user@example.com');
+          if (!isMounted) return;
           fetchGenerations(session.user.id);
         } else {
           setUser(null);
           const guestId = getOrCreateGuestId();
           await fetchProfile(guestId, 'guest@example.com');
+          if (!isMounted) return;
           fetchGenerations(guestId);
         }
       });
@@ -237,8 +256,11 @@ export default function App() {
     window.addEventListener('message', handleMessage);
     
     return () => {
+      isMounted = false;
       window.removeEventListener('message', handleMessage);
-      if (profileSub && isSupabaseConfigured) supabase.removeChannel(profileSub);
+      if (profileSub && isSupabaseConfigured) {
+        supabase.removeChannel(profileSub);
+      }
       if (authSub) authSub.unsubscribe();
     };
   }, []);
@@ -389,7 +411,7 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handlePublish = () => {
+  const showSubscriptionPaywallModal = () => {
     // @ts-ignore
     const paystack = new window.PaystackPop();
     paystack.newTransaction({
@@ -413,6 +435,22 @@ export default function App() {
         alert('Subscription checkout cancelled.');
       },
     });
+  };
+
+  const triggerSiteDeployment = (siteData: string) => {
+    alert('Deployment Triggered: Pushing your site live...');
+    // Real deployment logic would go here
+  };
+
+  const handlePublishClick = async () => {
+    // 1. Check if user is subscribed via our active state
+    if (!isProPlan) {
+      // 2. If not subscribed, interrupt and open payment modal
+      showSubscriptionPaywallModal();
+    } else {
+      // 3. If subscribed, trigger deployment
+      triggerSiteDeployment(generatedCode);
+    }
   };
 
   // Smart AI Code Injection
@@ -535,7 +573,7 @@ export default function App() {
             
             {!isProPlan && (
               <button
-                onClick={handlePublish}
+                onClick={showSubscriptionPaywallModal}
                 className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl text-xs font-bold hover:from-indigo-700 hover:to-blue-700 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer"
               >
                 <CreditCard size={14} />
@@ -594,7 +632,7 @@ export default function App() {
               </div>
             </div>
             <button
-              onClick={handlePublish}
+              onClick={showSubscriptionPaywallModal}
               className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
             >
               Unlock Pro Plan
@@ -739,6 +777,13 @@ export default function App() {
                     <Smartphone size={16} />
                   </button>
                   <div className="h-4 w-[1px] bg-slate-200 mx-1"></div>
+                  <button 
+                    onClick={handlePublishClick} 
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
+                  >
+                    <Send size={12} />
+                    Publish
+                  </button>
                   <button 
                     onClick={downloadCode} 
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"

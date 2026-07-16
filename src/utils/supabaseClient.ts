@@ -53,11 +53,16 @@ const dummySupabase = {
   auth: {
     getSession: async () => ({ data: { session: null }, error: null }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null }),
+    signInAnonymously: async () => ({ data: null, error: 'Supabase not configured' }),
+    signUp: async () => ({ data: null, error: 'Supabase not configured' }),
+    signInWithPassword: async () => ({ data: null, error: 'Supabase not configured' }),
+    signOut: async () => ({ error: null }),
   },
   from: () => ({
     select: () => ({ data: [], error: 'Supabase not configured' }),
     insert: () => ({ data: null, error: 'Supabase not configured' }),
   }),
+  removeChannel: () => {},
 } as any;
 
 export const supabase = isSupabaseConfigured 

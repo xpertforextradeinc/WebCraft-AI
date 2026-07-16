@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
-import { checkUserCredits, decrementUserCredits, logGenerationEvent } from '../src/utils/supabaseServer';
+import { checkUserCredits, decrementUserCredits, logGenerationEvent } from '../src/utils/supabaseServer.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

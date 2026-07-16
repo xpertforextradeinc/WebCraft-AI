@@ -1,8 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
-import { checkUserCredits, decrementUserCredits, logGenerationEvent } from '../src/utils/supabaseServer';
-import { syndicateToTelegram } from './utils/telegram';
+import { checkUserCredits, decrementUserCredits, logGenerationEvent } from '../src/utils/supabaseServer.js';
+import { syndicateToTelegram } from './utils/telegram.js';
 import crypto from 'crypto';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

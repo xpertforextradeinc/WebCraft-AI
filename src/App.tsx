@@ -33,6 +33,45 @@ import {
   Send
 } from 'lucide-react';
 
+const modeOptions = [
+  { 
+    id: 'layout' as const, 
+    label: 'Generate Layout', 
+    desc: 'Gemini AI - Free', 
+    icon: Layout, 
+    details: 'Complete section structures, copy & layout framework',
+    color: 'text-violet-600 bg-violet-50 border-violet-100',
+    accentColor: 'from-violet-600 to-indigo-600'
+  },
+  { 
+    id: 'refine' as const, 
+    label: 'Refine Content', 
+    desc: 'OpenAI - 1 Credit', 
+    icon: Sparkles, 
+    details: 'Fine-tune sections, customize blocks, and polish copy',
+    color: 'text-fuchsia-600 bg-fuchsia-50 border-fuchsia-100',
+    accentColor: 'from-fuchsia-600 to-pink-600'
+  },
+  { 
+    id: 'image' as const, 
+    label: 'AI Image Assets', 
+    desc: 'Dynamic Graphics - 1 Credit', 
+    icon: ImageIcon, 
+    details: 'Create custom premium vectors, banners, and logos',
+    color: 'text-sky-600 bg-sky-50 border-sky-100',
+    accentColor: 'from-sky-600 to-blue-600'
+  },
+  { 
+    id: 'video' as const, 
+    label: 'AI Video Hero Banners', 
+    desc: 'Motion Loop - 1 Credit', 
+    icon: VideoIcon, 
+    details: 'Embed immersive, cinematic motion background loops',
+    color: 'text-amber-600 bg-amber-50 border-amber-100',
+    accentColor: 'from-amber-600 to-orange-600'
+  }
+];
+
 export default function App() {
   const [prompt, setPrompt] = useState('');
   const [followUpPrompt, setFollowUpPrompt] = useState('');
@@ -59,6 +98,22 @@ export default function App() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [authError, setAuthError] = useState('');
   const [showHostingUpsell, setShowHostingUpsell] = useState(false);
+  
+  // Custom dropdown open state
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Unified Payment & Subscription modal states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedFlwPlan, setSelectedFlwPlan] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [flwPlans, setFlwPlans] = useState<any[]>(() => {
+    try {
+      const cached = localStorage.getItem('webcraft_flw_plans');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loadingFlwPlans, setLoadingFlwPlans] = useState(false);
 
   // Helper: Retrieve or generate a persistent local Guest ID for session-based credits tracking
   const getOrCreateGuestId = () => {
@@ -265,6 +320,34 @@ export default function App() {
     };
   }, []);
 
+  const syncFlwPlans = async (force = false) => {
+    if (!import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY) return;
+    if (!force && flwPlans.length > 0) return; // Skip if already cached/loaded unless forced
+
+    setLoadingFlwPlans(true);
+    try {
+      const res = await fetch('/api/flutterwave/create-plans');
+      if (!res.ok) {
+        throw new Error(`HTTP error ${res.status}`);
+      }
+      const data = await res.json();
+      if (data.success && data.plans) {
+        setFlwPlans(data.plans);
+        localStorage.setItem('webcraft_flw_plans', JSON.stringify(data.plans));
+      }
+    } catch (err) {
+      console.error("Error fetching or establishing Flutterwave plans:", err);
+    } finally {
+      setLoadingFlwPlans(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showPaymentModal) {
+      syncFlwPlans(false); // Only auto-runs on mount/open if NOT already cached
+    }
+  }, [showPaymentModal]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -412,12 +495,27 @@ export default function App() {
   };
 
   const showSubscriptionPaywallModal = () => {
+    const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+    if (!publicKey) {
+      alert("Payments temporarily unavailable. (Missing VITE_PAYSTACK_PUBLIC_KEY configuration)");
+      return;
+    }
     // @ts-ignore
     const paystack = new window.PaystackPop();
     paystack.newTransaction({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_mock_public_key', 
+      key: publicKey,
       email: user?.email || 'user@example.com',
       amount: 100000, 
+      /**
+       * Paystack Subscription Plan Code:
+       * "PLN_kh753o3e43u2fa3" corresponds to a pre-configured plan on Paystack.
+       *
+       * NOTE ON ENVIRONMENT VERIFICATION:
+       * Whether this plan code belongs to a Live-Mode or Test-Mode environment
+       * cannot be determined programmatically, as Paystack plan IDs use the same format
+       * in both environments. To verify the environment type, check this plan code directly
+       * within the Paystack Merchant Dashboard under "Plans" for the respective API keys in use.
+       */
       plan: 'PLN_kh753o3e43u2fa3',
       onSuccess: async (transaction: any) => {
         setIsProPlan(true);
@@ -508,19 +606,19 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
+    <div className="min-h-screen bg-gradient-to-tr from-slate-50 via-slate-50 to-violet-50/20 text-slate-800 font-sans leading-normal tracking-normal antialiased">
       {/* SaaS Main Header Area */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 shadow-sm">
+      <header className="bg-white/85 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/80 px-6 py-4 shadow-sm shadow-slate-100/20 transition-all">
         <div className="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md shadow-indigo-100">
+            <div className="p-2.5 bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-xl shadow-md shadow-violet-100/60 transition-transform duration-300 hover:scale-105">
               <Sparkles size={20} className="animate-pulse" />
             </div>
             <div>
               <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                 WebCraft AI
               </h1>
-              <p className="text-xs text-slate-500 font-medium">Enterprise AI SaaS Page & Asset Builder</p>
+              <p className="text-xs text-slate-500 font-bold tracking-wide">Enterprise AI SaaS Page & Asset Builder</p>
             </div>
           </div>
 
@@ -528,14 +626,14 @@ export default function App() {
           <div className="flex items-center gap-3 flex-wrap">
             {/* Database Staging Mode warning when table is missing */}
             {profile?.table_missing && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 shadow-sm" title="Setup user_profiles and generations tables in Supabase for full features">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 shadow-xs" title="Setup user_profiles and generations tables in Supabase for full features">
                 <ShieldAlert size={12} />
                 Offline Mode (No Tables)
               </span>
             )}
 
             {/* Supabase Connection Status Badge */}
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black border shadow-sm ${
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black border shadow-xs ${
               isSupabaseConfigured 
                 ? 'bg-emerald-50/80 text-emerald-700 border-emerald-200' 
                 : 'bg-slate-100 text-slate-500 border-slate-200'
@@ -545,12 +643,12 @@ export default function App() {
             </span>
 
             {/* Live Credits display */}
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-700 shadow-sm">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-700 shadow-xs">
               <Coins size={14} className="text-amber-500 animate-spin" style={{ animationDuration: '4s' }} />
               Credits:{' '}
               {profile ? (
                 profile.plan_tier === 'pro' ? (
-                  <span className="text-indigo-600 font-black">Unlimited 🚀</span>
+                  <span className="text-violet-600 font-black">Unlimited 🚀</span>
                 ) : (
                   <span className="text-slate-900">{profile.media_credits} Left</span>
                 )
@@ -561,23 +659,24 @@ export default function App() {
 
             {/* Plan Tier Status */}
             {isProPlan ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 Plan: Pro Active
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
                 Plan: Free Staging
               </span>
             )}
             
             {!isProPlan && (
               <button
-                onClick={showSubscriptionPaywallModal}
-                className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl text-xs font-bold hover:from-indigo-700 hover:to-blue-700 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer"
+                onClick={() => setShowPaymentModal(true)}
+                className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-xs font-bold hover:from-violet-700 hover:to-indigo-700 shadow-md shadow-violet-100/40 hover:shadow-lg hover:shadow-violet-200/50 transition-all duration-200 cursor-pointer"
+                title="Upgrade Plan"
               >
                 <CreditCard size={14} />
-                Upgrade (Paystack)
+                Upgrade Plan
               </button>
             )}
 
@@ -608,7 +707,7 @@ export default function App() {
                   setAuthError('');
                   setShowAuthModal(true);
                 }}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-850 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-850 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
               >
                 <LogIn size={14} />
                 Sync Profile
@@ -618,22 +717,40 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6">
+      <main className="max-w-7xl mx-auto px-6 py-8 md:py-12">
+        {/* Short Premium Hero Moment */}
+        <div className="text-center pb-12 max-w-3xl mx-auto animate-fade-in">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full bg-violet-50 border border-violet-100/60 shadow-xs">
+            <Sparkles className="text-violet-600 animate-pulse" size={12} />
+            <span className="text-[10px] text-violet-700 font-extrabold uppercase tracking-widest">Multi-Model Autopilot v2.0</span>
+          </div>
+          <h2 className="text-3xl md:text-5xl font-black text-slate-950 tracking-tight leading-tight mb-4">
+            Describe your idea. <br className="hidden sm:inline" />
+            <span className="bg-gradient-to-r from-violet-600 via-indigo-600 to-fuchsia-600 bg-clip-text text-transparent drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+              Watch it build itself.
+            </span>
+          </h2>
+          <p className="text-sm md:text-base text-slate-500 font-medium max-w-lg mx-auto leading-relaxed">
+            WebCraft AI coordinates Gemini & OpenAI dynamically to assemble stunning layouts, refine prose, generate tailored illustrations, and bake responsive features automatically.
+          </p>
+        </div>
+
         {/* Dynamic Warning Hook for Locked Models */}
         {['refine', 'image', 'video'].includes(generationMode) && !isProPlan && (!profile || profile.media_credits <= 0) && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center justify-between shadow-sm animate-fade-in flex-wrap gap-4">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 mb-8 flex items-center justify-between shadow-md shadow-amber-500/5 animate-fade-in flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-amber-100 text-amber-700 rounded-xl">
                 <Lock size={18} />
               </div>
               <div>
-                <h4 className="font-bold text-amber-900 text-sm">Premium Feature Locked / No Credits</h4>
+                <h4 className="font-extrabold text-amber-900 text-sm">Premium Feature Locked / No Credits</h4>
                 <p className="text-xs text-amber-700">OpenAI refinement, high-fidelity AI Image assets, and cinematic Video Hero Banners are available on our Pro Plan.</p>
               </div>
             </div>
             <button
-              onClick={showSubscriptionPaywallModal}
+              onClick={() => setShowPaymentModal(true)}
               className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
+              title="Unlock Pro Plan"
             >
               Unlock Pro Plan
             </button>
@@ -641,24 +758,92 @@ export default function App() {
         )}
 
         {/* Central Controls Platform Panel */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8">
+        <div className="bg-white border border-slate-200/80 rounded-3xl shadow-xl shadow-slate-100/50 p-6 md:p-8 mb-12 transition-all duration-300 hover:shadow-2xl hover:shadow-slate-100/70">
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Generation Mode Control */}
-            <div className="flex flex-col gap-1.5 md:w-72">
+            {/* Generation Mode Control - Premium Custom Dropdown */}
+            <div className="flex flex-col gap-1.5 md:w-80 relative">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Generation Mode</label>
-              <div className="relative">
-                <select 
-                  value={generationMode} 
-                  onChange={(e) => setGenerationMode(e.target.value as any)} 
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all appearance-none cursor-pointer"
-                >
-                  <option value="layout">Generate Layout (Gemini) - Free</option>
-                  <option value="refine">Refine Content (OpenAI) - 1 Credit</option>
-                  <option value="image">AI Image Assets - 1 Credit</option>
-                  <option value="video">AI Video Hero Banners - 1 Credit</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                  <span className="text-[10px]">▼</span>
+              
+              {/* Dropdown Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-200/80 rounded-xl font-semibold text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white transition-all text-left shadow-xs cursor-pointer z-20 relative"
+              >
+                <div className="flex items-center gap-2.5">
+                  {(() => {
+                    const currentMode = modeOptions.find(o => o.id === generationMode) || modeOptions[0];
+                    const IconComp = currentMode.icon;
+                    return (
+                      <>
+                        <div className={`p-1.5 rounded-lg ${currentMode.color} border shadow-xs`}>
+                          <IconComp size={16} />
+                        </div>
+                        <div>
+                          <span className="block font-bold text-slate-900 text-xs sm:text-sm">{currentMode.label}</span>
+                          <span className="block text-[10px] text-slate-500 font-medium">{currentMode.desc}</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+                <span className={`text-[10px] text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}>▼</span>
+              </button>
+
+              {/* Outside click handler overlay */}
+              {dropdownOpen && (
+                <div 
+                  className="fixed inset-0 z-10 cursor-default" 
+                  onClick={() => setDropdownOpen(false)}
+                />
+              )}
+
+              {/* Styled Dropdown Panel with proper transitions */}
+              <div 
+                className={`absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-1.5 transition-all duration-200 origin-top ${
+                  dropdownOpen 
+                    ? 'opacity-100 translate-y-0 scale-100 visible' 
+                    : 'opacity-0 -translate-y-2 scale-95 invisible pointer-events-none'
+                }`}
+              >
+                <div className="flex flex-col gap-1">
+                  {modeOptions.map((opt) => {
+                    const IconComp = opt.icon;
+                    const isSelected = generationMode === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setGenerationMode(opt.id);
+                          setDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 p-2.5 rounded-lg transition-all text-left cursor-pointer ${
+                          isSelected 
+                            ? 'bg-violet-50/70 text-violet-950 border border-violet-100/60 shadow-xs' 
+                            : 'hover:bg-slate-50 text-slate-700 border border-transparent'
+                        }`}
+                      >
+                        <div className={`p-2 rounded-lg transition-all ${
+                          isSelected ? opt.color : 'text-slate-500 bg-slate-100'
+                        }`}>
+                          <IconComp size={16} />
+                        </div>
+                        <div className="flex-grow">
+                          <div className="flex items-center justify-between">
+                            <span className="font-extrabold text-xs text-slate-900">{opt.label}</span>
+                            {isSelected && (
+                              <span className="text-[10px] bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-2 py-0.5 rounded-md font-bold shadow-xs">
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          <span className="block text-[10px] text-slate-500 font-medium leading-normal mt-0.5">{opt.desc}</span>
+                          <span className="block text-[9px] text-slate-400 leading-tight mt-0.5 font-medium">{opt.details}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -680,13 +865,13 @@ export default function App() {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') generateWebsite();
                   }}
-                  className="flex-grow p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner placeholder:text-slate-400"
+                  className="flex-grow p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white transition-all shadow-inner placeholder:text-slate-400 font-medium"
                 />
                 
                 <button
                   onClick={() => generateWebsite()}
                   disabled={loading}
-                  className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-md shadow-indigo-100 disabled:bg-indigo-300 flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-md shadow-violet-100 hover:shadow-lg cursor-pointer flex items-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -706,9 +891,9 @@ export default function App() {
         </div>
 
         {/* Template Board */}
-        <div className="mb-8">
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Instant Template Frameworks</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div className="mb-12">
+          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Instant Template Frameworks</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {templates.map((template) => (
               <button
                 key={template.name}
@@ -716,10 +901,10 @@ export default function App() {
                   setGenerationMode('layout');
                   generateWebsite(false, template.prompt);
                 }}
-                className="p-3.5 bg-white border border-slate-200 rounded-xl hover:border-indigo-500 hover:shadow-md text-left transition-all duration-200 cursor-pointer group"
+                className="p-4 bg-white border border-slate-200/80 rounded-2xl hover:border-violet-500 hover:shadow-xl hover:shadow-violet-500/5 hover:-translate-y-1 text-left transition-all duration-350 cursor-pointer group shadow-sm shadow-slate-100/50"
               >
-                <div className="text-xs font-bold text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors">{template.name}</div>
-                <div className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">{template.prompt}</div>
+                <div className="text-xs font-extrabold text-slate-950 mb-1.5 group-hover:text-violet-600 transition-colors">{template.name}</div>
+                <div className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed font-medium">{template.prompt}</div>
               </button>
             ))}
           </div>
@@ -727,15 +912,15 @@ export default function App() {
 
         {/* Dynamic Sandbox Multi-Environment Staging Canvas */}
         {(generatedCode || generatedMedia) && (
-          <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden mb-8 animate-fade-in">
-            <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center justify-between flex-wrap gap-4">
+          <div className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-slate-250/50 overflow-hidden mb-12 animate-fade-in">
+            <div className="bg-slate-50/60 border-b border-slate-200 px-6 py-4 flex items-center justify-between flex-wrap gap-4">
               <div className="flex gap-2">
                 {generatedCode && (
                   <button
                     onClick={() => setActiveTab('website')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${
                       activeTab === 'website'
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100'
+                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-100/60'
                         : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
@@ -746,9 +931,9 @@ export default function App() {
                 {generatedMedia && (
                   <button
                     onClick={() => setActiveTab('media')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all duration-200 relative cursor-pointer ${
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 relative cursor-pointer ${
                       activeTab === 'media'
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100'
+                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-100/60'
                         : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
@@ -764,14 +949,14 @@ export default function App() {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => setIframeSize('desktop')} 
-                    className={`p-2 rounded-lg transition cursor-pointer ${iframeSize === 'desktop' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:bg-slate-100'}`}
+                    className={`p-2 rounded-lg transition cursor-pointer ${iframeSize === 'desktop' ? 'bg-violet-50 text-violet-600' : 'text-slate-400 hover:bg-slate-100'}`}
                     title="Desktop Preview"
                   >
                     <Laptop size={16} />
                   </button>
                   <button 
                     onClick={() => setIframeSize('mobile')} 
-                    className={`p-2 rounded-lg transition cursor-pointer ${iframeSize === 'mobile' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:bg-slate-100'}`}
+                    className={`p-2 rounded-lg transition cursor-pointer ${iframeSize === 'mobile' ? 'bg-violet-50 text-violet-600' : 'text-slate-400 hover:bg-slate-100'}`}
                     title="Mobile View"
                   >
                     <Smartphone size={16} />
@@ -779,7 +964,7 @@ export default function App() {
                   <div className="h-4 w-[1px] bg-slate-200 mx-1"></div>
                   <button 
                     onClick={handlePublishClick} 
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
                   >
                     <Send size={12} />
                     Publish
@@ -815,12 +1000,12 @@ export default function App() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') generateWebsite(true);
                       }}
-                      className="flex-grow p-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                      className="flex-grow p-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-sm font-medium"
                     />
                     <button
                       onClick={() => generateWebsite(true)}
                       disabled={loading}
-                      className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-all shadow-md shadow-emerald-50 disabled:bg-emerald-300 flex items-center gap-2 cursor-pointer"
+                      className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-md shadow-violet-100 disabled:from-violet-300 disabled:to-indigo-300 flex items-center gap-2 cursor-pointer"
                     >
                       {loading ? <RefreshCw className="animate-spin" size={16} /> : <Check size={16} />}
                       Update Code
@@ -828,11 +1013,11 @@ export default function App() {
                   </div>
                   
                   {/* Staged HTML Renderer IFrame */}
-                  <div className="bg-white rounded-xl shadow-inner border border-slate-200 p-2">
+                  <div className="bg-white rounded-2xl shadow-inner border border-slate-200/80 p-2">
                     <iframe
                       srcDoc={generatedCode}
                       title="WebCraft AI Staging Preview"
-                      className={`w-full h-[600px] border-0 rounded-lg bg-white transition-all duration-300 ${
+                      className={`w-full h-[600px] border-0 rounded-xl bg-white transition-all duration-300 ${
                         iframeSize === 'mobile' ? 'max-w-[375px] mx-auto shadow-lg' : 'max-w-full'
                       }`}
                     />
@@ -846,7 +1031,7 @@ export default function App() {
                     <div>
                       <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
                         {generatedMedia.type === 'image' ? (
-                          <ImageIcon size={18} className="text-indigo-600" />
+                          <ImageIcon size={18} className="text-violet-600" />
                         ) : (
                           <VideoIcon size={18} className="text-purple-600 animate-pulse" />
                         )}
@@ -861,7 +1046,7 @@ export default function App() {
                       {generatedCode && (
                         <button
                           onClick={insertMediaIntoLayout}
-                          className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-extrabold transition shadow-sm cursor-pointer"
+                          className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg text-xs font-extrabold transition shadow-sm cursor-pointer"
                         >
                           <Layers size={13} />
                           Insert into Layout
@@ -909,17 +1094,17 @@ export default function App() {
 
         {/* Real-Time Database Generations History Feed */}
         {recentGenerations.length > 0 && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-8 animate-fade-in">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <History size={16} className="text-indigo-600" />
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-100/50 mb-12 animate-fade-in">
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+              <History size={16} className="text-violet-600" />
               Dynamic Generations History
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {recentGenerations.map((gen) => (
-                <div key={gen.id} className="border border-slate-150 rounded-xl p-4 bg-slate-50 hover:bg-white hover:border-indigo-200 transition-all shadow-sm">
-                  <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
-                    <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1">
+                <div key={gen.id} className="border border-slate-150 rounded-2xl p-5 bg-slate-50/50 hover:bg-white hover:border-violet-200 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 shadow-sm">
+                  <div className="flex items-center justify-between mb-3.5 border-b border-slate-100 pb-2">
+                    <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-100 flex items-center gap-1">
                       {gen.type === 'layout' || gen.type === 'refine' ? <Layout size={10} /> : gen.type === 'image' ? <ImageIcon size={10} /> : <VideoIcon size={10} />}
                       {gen.type}
                     </span>
@@ -927,7 +1112,7 @@ export default function App() {
                       {new Date(gen.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 line-clamp-2 italic mb-3 font-medium">
+                  <p className="text-xs text-slate-600 line-clamp-2 italic mb-4 font-medium">
                     "{gen.prompt}"
                   </p>
                   
@@ -940,7 +1125,7 @@ export default function App() {
                           setActiveTab('website');
                           alert("History restored: Loaded website layout!");
                         }}
-                        className="text-[10px] font-bold px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-indigo-500 hover:text-indigo-600 transition"
+                        className="text-[10px] font-bold px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-violet-500 hover:text-violet-600 transition duration-200"
                       >
                         Load Website
                       </button>
@@ -955,7 +1140,7 @@ export default function App() {
                           setActiveTab('media');
                           alert(`History restored: Loaded AI ${gen.type}!`);
                         }}
-                        className="text-[10px] font-bold px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-indigo-500 hover:text-indigo-600 transition"
+                        className="text-[10px] font-bold px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-violet-500 hover:text-violet-600 transition duration-200"
                       >
                         Load Media
                       </button>
@@ -973,10 +1158,10 @@ export default function App() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 relative">
             <h3 className="font-extrabold text-slate-900 text-lg flex items-center gap-2 mb-2">
-              <UserCheck className="text-indigo-600" size={20} />
+              <UserCheck className="text-violet-600" size={20} />
               {isSignUp ? 'Create SaaS Account' : 'Sync Existing Profile'}
             </h3>
-            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+            <p className="text-xs text-slate-500 mb-5 leading-relaxed font-medium">
               Log in to sync your active generations, plan subscription levels, and dynamic credit balances instantly.
             </p>
 
@@ -994,7 +1179,7 @@ export default function App() {
                   required
                   value={authEmail}
                   onChange={(e) => setAuthEmail(e.target.value)}
-                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-medium"
                   placeholder="name@example.com"
                 />
               </div>
@@ -1006,14 +1191,14 @@ export default function App() {
                   required
                   value={authPassword}
                   onChange={(e) => setAuthPassword(e.target.value)}
-                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-medium"
                   placeholder="••••••••"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-md shadow-indigo-50 transition cursor-pointer mt-2"
+                className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-md shadow-violet-100/50 hover:shadow-lg transition-all cursor-pointer mt-2"
               >
                 {isSignUp ? 'Register Account' : 'Sign In and Sync'}
               </button>
@@ -1022,13 +1207,13 @@ export default function App() {
             <div className="mt-5 pt-4 border-t border-slate-100 flex justify-between items-center text-xs">
               <button
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="text-indigo-600 font-bold hover:underline"
+                className="text-violet-600 font-bold hover:underline cursor-pointer"
               >
                 {isSignUp ? 'Already have an account? Login' : 'Need an account? Register'}
               </button>
               <button
                 onClick={() => setShowAuthModal(false)}
-                className="text-slate-400 hover:text-slate-600 font-semibold"
+                className="text-slate-400 hover:text-slate-600 font-semibold cursor-pointer"
               >
                 Cancel
               </button>
@@ -1042,7 +1227,7 @@ export default function App() {
         <div id="hosting-upsell-modal" className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative">
             <div className="text-center">
-              <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm">
+              <div className="w-14 h-14 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm">
                 🚀
               </div>
               
@@ -1050,7 +1235,7 @@ export default function App() {
                 Ready to Launch WebCraft AI Live?
               </h3>
               
-              <p className="text-xs text-slate-600 mb-6 leading-relaxed">
+              <p className="text-xs text-slate-600 mb-6 leading-relaxed font-medium">
                 Your custom AI website workspace layout has generated successfully. To take this project live immediately with a premium dedicated hosting server and an officially registered custom domain node (.com, .org, .ng, etc.), tap below to spin up your instance.
               </p>
 
@@ -1060,7 +1245,7 @@ export default function App() {
                   href={`https://t.me?text=${encodeURIComponent(`Hello Hassan, I would like to request hosting and domain setup for my WebCraft AI website layout. User email: ${user?.email || 'guest@example.com'}.`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   💬 Request Hosting & Domain Setup
                 </a>
@@ -1077,6 +1262,225 @@ export default function App() {
               <p className="mt-4 text-[10px] text-slate-400 italic">
                 *Clicking this will automatically draft your deployment request directly into your chat window with Hassan.*
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic Unified Payment Choice Modal Overlay */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative max-h-[90vh] overflow-y-auto">
+            <h3 className="font-extrabold text-slate-900 text-lg flex items-center gap-2 mb-2">
+              <Sparkles className="text-violet-600" size={20} />
+              Choose Premium Upgrade Plan
+            </h3>
+            <p className="text-xs text-slate-500 mb-5 leading-relaxed font-medium">
+              Unlock the Pro Multi-Model SaaS Architect features, remove credit limits, and launch with unlimited capacity today using your preferred local gateway.
+            </p>
+
+            <div className="flex flex-col gap-6">
+              {/* Paystack Column / Gateway Option */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h4 className="font-extrabold text-slate-900 text-sm">Paystack Checkout</h4>
+                    <p className="text-[11px] text-slate-500">Standard One-Time / Monthly Flat</p>
+                  </div>
+                  <span className="text-xs font-black text-violet-600 bg-violet-50 px-2 py-1 rounded-lg">
+                    ₦1,000
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mb-4 leading-relaxed font-medium">
+                  Gain Pro access and 100 media credits instantly with a secure, standard Paystack subscription checkout.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    showSubscriptionPaywallModal();
+                  }}
+                  disabled={!import.meta.env.VITE_PAYSTACK_PUBLIC_KEY}
+                  className={`w-full py-2.5 text-white font-bold text-xs rounded-xl shadow-sm transition-all duration-200 ${
+                    import.meta.env.VITE_PAYSTACK_PUBLIC_KEY
+                      ? 'bg-slate-900 hover:bg-slate-850 cursor-pointer'
+                      : 'bg-slate-400 cursor-not-allowed opacity-75'
+                  }`}
+                >
+                  {import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ? "Pay with Paystack" : "Paystack Temporarily Unavailable"}
+                </button>
+              </div>
+
+              {/* Flutterwave Gateway Option */}
+              <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/50 rounded-xl p-4 border border-amber-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h4 className="font-extrabold text-amber-900 text-sm">Flutterwave Subscriptions</h4>
+                    <p className="text-[11px] text-amber-700">Flexible Recurring Naira Billing</p>
+                  </div>
+                  <span className="text-xs font-black text-amber-700 bg-amber-100 px-2.5 py-1 rounded-lg">
+                    Flutterwave
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {[
+                    { key: 'weekly', name: 'Weekly', price: '₦12,000', amount: 12000, credits: '50 Credits' },
+                    { key: 'monthly', name: 'Monthly', price: '₦24,000', amount: 24000, credits: '200 Credits' },
+                    { key: 'yearly', name: 'Yearly', price: '₦240,000', amount: 240000, credits: '2000 Credits' }
+                  ].map((plan) => (
+                    <button
+                      key={plan.key}
+                      onClick={() => setSelectedFlwPlan(plan.key as any)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all ${
+                        selectedFlwPlan === plan.key
+                          ? 'bg-white border-amber-500 shadow-sm text-amber-900'
+                          : 'bg-white/50 border-slate-200 text-slate-500 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="text-[11px] font-black">{plan.name}</span>
+                      <span className="text-xs font-bold text-slate-900 my-1">{plan.price}</span>
+                      <span className="text-[9px] font-medium text-amber-600 bg-amber-50 px-1 rounded">{plan.credits}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+                  Subscribes you recurringly. Your account will be updated with your active subscription tiers automatically.
+                </p>
+
+                {/* Local Plans Caching and Admin Setup Script Control */}
+                <div className="mb-4 flex items-center justify-between text-[10px] text-slate-500 border-t border-amber-150/50 pt-2.5">
+                  <span className="font-medium">
+                    Plans status:{' '}
+                    {loadingFlwPlans ? (
+                      <span className="text-amber-600 font-bold animate-pulse">Syncing...</span>
+                    ) : flwPlans.length > 0 ? (
+                      <span className="text-emerald-600 font-bold">✓ Cached ({flwPlans.length} Plans)</span>
+                    ) : (
+                      <span className="text-slate-400">Not initialized</span>
+                    )}
+                  </span>
+                  {import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY && (
+                    <button
+                      type="button"
+                      onClick={() => syncFlwPlans(true)}
+                      disabled={loadingFlwPlans}
+                      className="text-amber-700 font-bold hover:underline cursor-pointer flex items-center gap-1 bg-transparent border-0 p-0"
+                      title="Forced Admin Sync: Fetch and establish plans on Flutterwave"
+                    >
+                      🔄 Admin Sync
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={async () => {
+                    const publicKey = import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY;
+                    if (!publicKey) {
+                      alert("Payments temporarily unavailable. (Missing VITE_FLUTTERWAVE_PUBLIC_KEY configuration)");
+                      return;
+                    }
+
+                    // Define mapping of key to plan setup definitions
+                    const flwPlansMapping: Record<string, { name: string; amount: number }> = {
+                      weekly: { name: "WebCraft AI Weekly", amount: 12000 },
+                      monthly: { name: "WebCraft AI Monthly", amount: 24000 },
+                      yearly: { name: "WebCraft AI Yearly", amount: 240000 },
+                    };
+
+                    const selectedPlanData = flwPlansMapping[selectedFlwPlan];
+
+                    // Find corresponding plan code returned from our Dynamic Plans creation endpoint
+                    const matchedPlan = flwPlans.find(p => p.name.toLowerCase().includes(selectedFlwPlan));
+                    const planId = matchedPlan ? matchedPlan.id : undefined;
+
+                    // Standard Flutterwave checkout parameters
+                    const txRef = `flw_tx_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+
+                    // @ts-ignore
+                    if (typeof window.FlutterwaveCheckout === "function") {
+                      // @ts-ignore
+                      window.FlutterwaveCheckout({
+                        public_key: publicKey,
+                        tx_ref: txRef,
+                        amount: selectedPlanData.amount,
+                        currency: "NGN",
+                        payment_plan: planId, // Pass created plan ID to configure subscription billing
+                        customer: {
+                          email: user?.email || 'guest@example.com',
+                          name: user?.email?.split('@')[0] || 'Guest Builder',
+                        },
+                        meta: {
+                          user_id: user?.id || localStorage.getItem('webcraft_guest_id') || 'guest_user',
+                        },
+                        customizations: {
+                          title: "WebCraft AI Subscriptions",
+                          description: `Recurring payment subscription: ${selectedPlanData.name}`,
+                          logo: "https://checkout.flutterwave.com/assets/img/logo.svg",
+                        },
+                        callback: async function (response: any) {
+                          console.log("Flutterwave transaction success response:", response);
+                          if (response.status === "successful" || response.status === "completed") {
+                            setIsProPlan(true);
+                            // Also update locally immediately for better UX
+                            const activeUserId = user?.id || localStorage.getItem('webcraft_guest_id');
+                            if (activeUserId) {
+                              let creditsToAdd = 100;
+                              if (selectedPlanData.amount >= 240000) creditsToAdd = 2000;
+                              else if (selectedPlanData.amount >= 24000) creditsToAdd = 200;
+                              else if (selectedPlanData.amount >= 12000) creditsToAdd = 50;
+
+                              try {
+                                const { data: currentProfile } = await supabase
+                                  .from('user_profiles')
+                                  .select('media_credits')
+                                  .eq('id', activeUserId)
+                                  .maybeSingle();
+
+                                const existingCredits = currentProfile?.media_credits || 0;
+                                
+                                await supabase
+                                  .from('user_profiles')
+                                  .update({
+                                    plan_tier: 'pro',
+                                    media_credits: existingCredits + creditsToAdd
+                                  })
+                                  .eq('id', activeUserId);
+                              } catch (e) {
+                                console.warn("Local cache update completed with alert fallback:", e);
+                              }
+                            }
+                            alert(`Subscription success! Your WebCraft AI account is upgraded to Pro.`);
+                            setShowPaymentModal(false);
+                          }
+                        },
+                        onclose: function() {
+                          console.log("Flutterwave inline checkout screen dismissed.");
+                        }
+                      });
+                    } else {
+                      alert("Flutterwave SDK failed to load. Please refresh the page and try again.");
+                    }
+                  }}
+                  disabled={!import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY}
+                  className={`w-full py-2.5 text-white font-bold text-xs rounded-xl shadow-md transition-all duration-200 ${
+                    import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY
+                      ? 'bg-amber-600 hover:bg-amber-700 hover:shadow-lg cursor-pointer'
+                      : 'bg-slate-400 cursor-not-allowed opacity-75'
+                  }`}
+                >
+                  {import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY ? `Pay with Flutterwave (${selectedFlwPlan === 'weekly' ? '₦12k/Wk' : selectedFlwPlan === 'monthly' ? '₦24k/Mo' : '₦240k/Yr'})` : "Flutterwave Temporarily Unavailable"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="text-slate-500 hover:text-slate-700 font-bold text-xs cursor-pointer"
+              >
+                Cancel / Close
+              </button>
             </div>
           </div>
         </div>

@@ -9,7 +9,9 @@ dotenv.config();
 // Import our central, production-ready Vercel handlers
 import generateHandler from "./api/generate";
 import generateMediaHandler from "./api/generate-media";
-import paystackWebhookHandler from "./api/webhook/paystack/route";
+import paystackWebhookHandler from "./api/webhook/paystack";
+import flutterwaveCreatePlansHandler from "./api/flutterwave/create-plans";
+import flutterwaveWebhookHandler from "./api/webhook/flutterwave";
 
 async function startServer() {
   const app = express();
@@ -42,6 +44,23 @@ async function startServer() {
   app.post("/api/webhook/paystack", async (req, res, next) => {
     try {
       await paystackWebhookHandler(req as any, res as any);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Support both GET and POST for triggering the Flutterwave plans creation setup
+  app.all("/api/flutterwave/create-plans", async (req, res, next) => {
+    try {
+      await flutterwaveCreatePlansHandler(req as any, res as any);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/webhook/flutterwave", async (req, res, next) => {
+    try {
+      await flutterwaveWebhookHandler(req as any, res as any);
     } catch (err) {
       next(err);
     }

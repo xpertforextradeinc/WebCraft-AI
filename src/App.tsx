@@ -688,17 +688,6 @@ export default function App() {
                 Plan: Free Staging
               </span>
             )}
-            
-            {!isProPlan && (
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-xs font-bold hover:from-violet-700 hover:to-indigo-700 shadow-md shadow-violet-100/40 hover:shadow-lg hover:shadow-violet-200/50 transition-all duration-200 cursor-pointer"
-                title="Upgrade Plan"
-              >
-                <CreditCard size={14} />
-                Upgrade Plan
-              </button>
-            )}
 
             <div className="h-6 w-[1px] bg-slate-200 mx-1 hidden sm:block"></div>
 

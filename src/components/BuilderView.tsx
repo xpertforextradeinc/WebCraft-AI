@@ -14,7 +14,10 @@ import {
   Check, 
   Layers,
   ArrowLeft,
-  X
+  X,
+  MessageSquare,
+  Wand2,
+  Globe
 } from 'lucide-react';
 import { GeneratedMedia, UserProfile } from '../types';
 
@@ -130,24 +133,55 @@ export default function BuilderView({
     <div className="animate-fade-in w-full">
       {/* 1. BLANK STATE / HERO INPUT SCREEN */}
       {!isGeneratingActive ? (
-        <div className="max-w-3xl mx-auto py-8 md:py-16">
+        <div className="max-w-3xl mx-auto py-8 md:py-12">
           {/* Tagline section prominently centered, minimal distraction */}
-          <div className="text-center pb-8 animate-fade-in">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full bg-violet-50 border border-violet-100/60 shadow-xs">
+          <div className="text-center pb-6 animate-fade-in">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-3.5 rounded-full bg-violet-50 border border-violet-100/60 shadow-xs">
               <Sparkles className="text-violet-600 animate-pulse" size={12} />
               <span className="text-[10px] text-violet-700 font-extrabold uppercase tracking-widest">
                 Multi-Model Autopilot v2.0
               </span>
             </div>
-            <h2 className="text-3xl md:text-5xl font-black text-slate-950 tracking-tight leading-tight mb-4">
+            <h2 className="text-3xl md:text-5xl font-black text-slate-950 tracking-tight leading-none mb-3.5">
               Describe your idea. <br className="hidden sm:inline" />
               <span className="bg-gradient-to-r from-violet-600 via-indigo-600 to-fuchsia-600 bg-clip-text text-transparent drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
                 Watch it build itself.
               </span>
             </h2>
-            <p className="text-xs md:text-sm text-slate-500 font-medium max-w-md mx-auto leading-relaxed">
-              Assemble stunning page layouts, refine copy, and generate high-fidelity tailored vector/media resources instantly.
+            <p className="text-xs md:text-sm text-slate-500 font-medium max-w-xl mx-auto leading-relaxed mb-6">
+              Instantly transform plain-language ideas into a fully responsive, working website in seconds — no coding or technical skills required. Tailored specifically for Nigerian businesses looking for a fast, beautiful, and affordable digital presence.
             </p>
+
+            {/* Compact 3-Step "How it Works" Strip */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl mx-auto mt-4">
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-100 shadow-xs">
+                <div className="p-1.5 rounded-lg bg-violet-50 text-violet-600">
+                  <MessageSquare size={13} />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] font-black text-slate-800 leading-none">1. Describe</p>
+                  <p className="text-[8px] text-slate-400 font-semibold mt-0.5">Type your business idea</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-100 shadow-xs">
+                <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
+                  <Wand2 size={13} />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] font-black text-slate-800 leading-none">2. Generate</p>
+                  <p className="text-[8px] text-slate-400 font-semibold mt-0.5">Watch code build live</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-100 shadow-xs">
+                <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                  <Globe size={13} />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] font-black text-slate-800 leading-none">3. Publish</p>
+                  <p className="text-[8px] text-slate-400 font-semibold mt-0.5">Go live in one click</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Premium features billing warning banner */}
@@ -293,20 +327,24 @@ export default function BuilderView({
                   </button>
                 </div>
 
+                <p className="text-[10px] text-slate-400 font-medium pl-1 flex items-center gap-1.5 mt-1 animate-fade-in">
+                  <span className="text-amber-500 font-black">Tip:</span> Be specific — mention your business type, must-have sections, and the style you want (e.g. clean, modern, professional).
+                </p>
+
                 {generationMode === 'layout' && (
-                  <div className="flex items-center gap-2 mt-3 px-1.5 animate-fade-in bg-slate-50/80 hover:bg-slate-50 border border-slate-100 p-2 rounded-xl transition duration-200">
+                  <div className="flex items-center gap-2 mt-3 px-1.5 animate-fade-in bg-slate-50/85 border border-slate-100 p-2 rounded-xl opacity-65 cursor-not-allowed">
                     <input
                       id="include-auth-toggle"
                       type="checkbox"
-                      checked={includeAuth}
-                      onChange={(e) => setIncludeAuth(e.target.checked)}
-                      className="w-4 h-4 text-violet-600 border-slate-300 rounded focus:ring-violet-500 cursor-pointer accent-violet-600"
+                      checked={false}
+                      disabled
+                      className="w-4 h-4 text-slate-400 border-slate-300 rounded focus:ring-0 cursor-not-allowed"
                     />
-                    <label htmlFor="include-auth-toggle" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                    <label htmlFor="include-auth-toggle" className="text-xs font-bold text-slate-400 cursor-not-allowed select-none">
                       Include user accounts (Auth Starter Kit)
                     </label>
-                    <span className="text-[9px] bg-violet-100 text-violet-700 border border-violet-200 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider scale-95 origin-left">
-                      Supabase-powered
+                    <span className="text-[9px] bg-slate-100 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider scale-95 origin-left">
+                      Coming Soon
                     </span>
                   </div>
                 )}

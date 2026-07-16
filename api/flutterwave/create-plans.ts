@@ -12,6 +12,9 @@ interface FlutterwavePlan {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
 
+  // Server-side logging only - DO NOT send actual value to client
+  console.log(`[DEBUG] FLUTTERWAVE_SECRET_KEY env var presence: ${!!secretKey}, length: ${secretKey ? secretKey.length : 0}`);
+
   // If FLUTTERWAVE_SECRET_KEY is missing or looks like the template default, fail immediately
   if (!secretKey || secretKey.trim() === "" || secretKey === "CzsFdN1EZoFZo4eVSzOgZDcp58sU03kP") {
     console.warn("FLUTTERWAVE_SECRET_KEY is missing, empty, or uses the template placeholder value.");

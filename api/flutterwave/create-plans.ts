@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       return res.status(fetchResponse.status).json({
         success: false,
-        error: "Payments temporarily unavailable. (Flutterwave API returned error status)"
+        error: `Payments temporarily unavailable. (Flutterwave list-plans status ${fetchResponse.status}: ${errorText})`
       });
     }
 
@@ -91,7 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           
           return res.status(createResponse.status).json({
             success: false,
-            error: `Payments temporarily unavailable. (Failed to create standard subscription plan: ${planDef.name})`
+            error: `Payments temporarily unavailable. (Failed to create standard subscription plan "${planDef.name}". Status ${createResponse.status}: ${createError})`
           });
         }
 

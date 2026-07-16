@@ -338,19 +338,22 @@ export default function App() {
     setFlwPlansError(null);
     try {
       const res = await fetch('/api/flutterwave/create-plans');
-      if (!res.ok) {
-        throw new Error(`HTTP error ${res.status}`);
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        throw new Error(`HTTP error ${res.status}: Failed to parse JSON response`);
       }
-      const data = await res.json();
-      if (data.success && data.plans) {
+
+      if (res.ok && data.success && data.plans) {
         setFlwPlans(data.plans);
         localStorage.setItem('webcraft_flw_plans', JSON.stringify(data.plans));
       } else {
-        throw new Error(data.error || "Failed to load plans");
+        throw new Error(data.error || `HTTP error ${res.status}: ${JSON.stringify(data)}`);
       }
     } catch (err: any) {
       console.error("Error fetching or establishing Flutterwave plans:", err);
-      setFlwPlansError("Payments temporarily unavailable.");
+      setFlwPlansError(err.message || "Payments temporarily unavailable.");
       setFlwPlans([]);
       localStorage.removeItem('webcraft_flw_plans');
     } finally {
@@ -933,7 +936,7 @@ export default function App() {
             </p>
 
             <div className="flex flex-col gap-6">
-              {/* Paystack Column / Gateway Option */}
+              {/* Paystack Column / Gateway Option - Commented out per project policy
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -962,6 +965,7 @@ export default function App() {
                   {import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ? "Pay with Paystack" : "Paystack Temporarily Unavailable"}
                 </button>
               </div>
+              */}
 
               {/* Flutterwave Gateway Option */}
               <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/50 rounded-xl p-4 border border-amber-200">
@@ -977,9 +981,9 @@ export default function App() {
 
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   {[
-                    { key: 'weekly', name: 'Weekly', price: '₦12,000', amount: 12000, credits: '50 Credits' },
-                    { key: 'monthly', name: 'Monthly', price: '₦24,000', amount: 24000, credits: '200 Credits' },
-                    { key: 'yearly', name: 'Yearly', price: '₦240,000', amount: 240000, credits: '2000 Credits' }
+                    { key: 'weekly', name: 'Weekly', price: '₦12,000', amount: 12000 },
+                    { key: 'monthly', name: 'Monthly', price: '₦24,000', amount: 24000 },
+                    { key: 'yearly', name: 'Yearly', price: '₦240,000', amount: 240000 }
                   ].map((plan) => (
                     <button
                       key={plan.key}
@@ -991,8 +995,7 @@ export default function App() {
                       }`}
                     >
                       <span className="text-[11px] font-black">{plan.name}</span>
-                      <span className="text-xs font-bold text-slate-900 my-1">{plan.price}</span>
-                      <span className="text-[9px] font-medium text-amber-600 bg-amber-50 px-1 rounded">{plan.credits}</span>
+                      <span className="text-xs font-bold text-slate-900 mt-1">{plan.price}</span>
                     </button>
                   ))}
                 </div>
@@ -1002,13 +1005,13 @@ export default function App() {
                 </p>
 
                 {/* Local Plans Caching and Admin Setup Script Control */}
-                <div className="mb-4 flex items-center justify-between text-[10px] text-slate-500 border-t border-amber-150/50 pt-2.5">
+                <div className="mb-2 flex items-center justify-between text-[10px] text-slate-500 border-t border-amber-150/50 pt-2.5">
                   <span className="font-medium">
                     Plans status:{' '}
                     {loadingFlwPlans ? (
                       <span className="text-amber-600 font-bold animate-pulse">Syncing...</span>
                     ) : flwPlansError ? (
-                      <span className="text-rose-600 font-bold">✗ {flwPlansError}</span>
+                      <span className="text-rose-600 font-bold">✗ Error loading plans</span>
                     ) : flwPlans.length > 0 ? (
                       <span className="text-emerald-600 font-bold">✓ Cached ({flwPlans.length} Plans)</span>
                     ) : (
@@ -1027,6 +1030,14 @@ export default function App() {
                     </button>
                   )}
                 </div>
+
+                {flwPlansError && (
+                  <div className="mb-4 p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded text-[10px] font-mono whitespace-pre-wrap break-all leading-relaxed max-h-32 overflow-y-auto">
+                    <strong>Debug Error Details:</strong>
+                    <br />
+                    {flwPlansError}
+                  </div>
+                )}
 
                 <button
                   onClick={async () => {
